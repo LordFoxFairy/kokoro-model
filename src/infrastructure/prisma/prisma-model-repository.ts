@@ -125,6 +125,7 @@ export class PrismaModelRepository implements ModelRepository {
         ...defined("contextWindow", input.contextWindow),
         priority: input.priority ?? 100,
         status: "active",
+        publishedAt: new Date(),
       },
       update: {
         provider: account.provider,
@@ -138,6 +139,7 @@ export class PrismaModelRepository implements ModelRepository {
         contextWindow: input.contextWindow ?? null,
         priority: input.priority ?? 100,
         status: "active",
+        publishedAt: new Date(),
       },
     });
     if (binding.deletedAt) {
@@ -168,7 +170,8 @@ export class PrismaModelRepository implements ModelRepository {
         status: "active",
         deletedAt: null,
         featureKey: input.featureKey,
-        ...defined("transportKind", input.transportKind),
+        transportKind: input.transportKind ?? "litellm",
+        publishedAt: { not: null },
         providerAccount: { status: "active", deletedAt: null, healthStatus: { not: "down" } },
       },
       orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
