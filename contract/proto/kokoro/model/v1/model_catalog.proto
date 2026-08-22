@@ -1,0 +1,29 @@
+// GENERATED SOURCE — authority: contract/slice-a-contract-manifest.yaml
+syntax = "proto3";
+
+package kokoro.model.v1;
+
+enum ModelTransport {
+  MODEL_TRANSPORT_UNSPECIFIED = 0;
+  MODEL_TRANSPORT_LITELLM = 1;
+}
+
+message ResolveModelRequest {
+  string request_id = 1;
+  string site_id = 2;
+  string label = 3;
+}
+
+message ResolveModelResponse {
+  string model_revision_id = 1;
+  string provider_id = 2;
+  string provider_model_name = 3;
+  kokoro.model.v1.ModelTransport transport = 4;
+  string routing_policy_id = 5;
+  uint64 routing_policy_generation = 6;
+  string digest = 7;
+}
+
+service ModelCatalogService {
+  rpc ResolveModel(kokoro.model.v1.ResolveModelRequest) returns (kokoro.model.v1.ResolveModelResponse);
+}
