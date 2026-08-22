@@ -38,7 +38,8 @@
     "http:dev": "tsx src/interfaces/http/target-main.ts",
     "docker:smoke": "docker compose up --build -d && sleep 5 && curl --fail http://127.0.0.1:4221/healthz",
     "legacy:http": "tsx src/interfaces/http/main.ts",
-    "verify:standalone": "node scripts/verify-standalone.mjs"
+    "verify:standalone": "node scripts/verify-standalone.mjs && pnpm verify:contract-provenance",
+    "verify:contract-provenance": "node scripts/verify-contract-provenance.mjs"
   },
   "dependencies": {
     "@connectrpc/connect": "2.0.0",
