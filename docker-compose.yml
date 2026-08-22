@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: kokoro
+      POSTGRES_USER: kokoro_app
+      POSTGRES_PASSWORD: kokoro_local
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kokoro_app -d kokoro"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  model-migrate:
+    build: .
+    environment:
+      DATABASE_URL_MODEL: postgresql://kokoro_app:kokoro_local@postgres:5432/kokoro
+      MODEL_DB_LOCAL: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: pnpm db:postgres:local
+
+  model-http:
+    build: .
+    environment:
+      DATABASE_URL_MODEL: postgresql://kokoro_app:kokoro_local@postgres:5432/kokoro
+      KOKORO_MODEL_HTTP_PORT: "4221"
+    depends_on:
+      model-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "4221:4221"
+    command: pnpm http:dev
+
+  model-rpc:
+    build: .
+    environment:
+      DATABASE_URL_MODEL: postgresql://kokoro_app:kokoro_local@postgres:5432/kokoro
+      KOKORO_MODEL_RPC_PORT: "4222"
+    depends_on:
+      model-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "4222:4222"
+    command: pnpm rpc:dev
