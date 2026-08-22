@@ -119,8 +119,8 @@ model TenantModelPolicy {
   createdAt       DateTime              @default(now()) @map("created_at")
   updatedAt       DateTime              @updatedAt @map("updated_at")
 
-  @@unique([tenantId, labelKey])
-  @@index([tenantId, labelKey, status, deletedAt, priority])
+  @@unique([tenantId, labelKey], name: "uq_policy_tenant_label")
+  @@index([tenantId, labelKey, status, deletedAt, priority], name: "idx_policy_lookup")
   @@map("model_routing_policy")
 }
 

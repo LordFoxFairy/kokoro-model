@@ -109,8 +109,8 @@ CREATE TABLE `model_routing_policy` (
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 
-    INDEX `model_routing_policy_tenant_id_label_key_status_deleted_at_pri_idx`(`tenant_id`, `label_key`, `status`, `deleted_at`, `priority`),
-    UNIQUE INDEX `model_routing_policy_tenant_id_label_key_key`(`tenant_id`, `label_key`),
+    INDEX `idx_policy_lookup`(`tenant_id`, `label_key`, `status`, `deleted_at`, `priority`),
+    UNIQUE INDEX `uq_policy_tenant_label`(`tenant_id`, `label_key`),
     PRIMARY KEY (`routing_policy_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -132,4 +132,3 @@ ALTER TABLE `model_revision` ADD CONSTRAINT `model_revision_provider_id_fkey` FO
 
 -- AddForeignKey
 ALTER TABLE `model_provider_health_state` ADD CONSTRAINT `model_provider_health_state_provider_id_fkey` FOREIGN KEY (`provider_id`) REFERENCES `model_provider`(`provider_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-

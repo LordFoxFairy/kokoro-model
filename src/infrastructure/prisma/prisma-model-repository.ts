@@ -356,7 +356,7 @@ export class PrismaModelRepository implements ModelRepository {
   async upsertTenantModelPolicy(input: UpsertTenantModelPolicyInput): Promise<TenantModelPolicy> {
     const policy = await this.prisma.tenantModelPolicy.upsert({
       where: {
-        tenantId_labelKey: { tenantId: input.tenantId, labelKey: input.labelKey },
+        uq_policy_tenant_label: { tenantId: input.tenantId, labelKey: input.labelKey },
       },
       create: { tenantId: input.tenantId, labelKey: input.labelKey, status: input.status },
       update: { status: input.status },
