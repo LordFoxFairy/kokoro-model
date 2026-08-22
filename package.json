@@ -14,8 +14,8 @@
     }
   },
   "scripts": {
-    "dev": "tsx src/interfaces/http/main.ts",
-    "start": "tsx src/interfaces/http/main.ts",
+    "dev": "tsx src/interfaces/http/target-main.ts",
+    "start": "tsx src/interfaces/http/target-main.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:dev": "prisma migrate dev",
@@ -36,7 +36,9 @@
     "smoke:postgres": "tsx scripts/smoke-postgres.ts",
     "smoke:rpc": "tsx scripts/smoke-rpc.ts",
     "http:dev": "tsx src/interfaces/http/target-main.ts",
-    "docker:smoke": "docker compose up --build -d && sleep 5 && curl --fail http://127.0.0.1:4221/healthz"
+    "docker:smoke": "docker compose up --build -d && sleep 5 && curl --fail http://127.0.0.1:4221/healthz",
+    "legacy:http": "tsx src/interfaces/http/main.ts",
+    "verify:standalone": "node scripts/verify-standalone.mjs"
   },
   "dependencies": {
     "@connectrpc/connect": "2.0.0",
