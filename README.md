@@ -50,3 +50,5 @@ interfaces -> application -> domain -> infrastructure/mysql + infrastructure/red
 ```
 
 跨服务只能依赖 Model RPC contract；不得直接读写 Model 表。管理写入成功后必须失效相关 Redis route cache。
+
+完整的 HTTP/RPC 字段、错误码、生命周期和生成验证规则见 [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)。

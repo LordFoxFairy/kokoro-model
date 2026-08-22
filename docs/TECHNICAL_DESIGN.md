@@ -14,7 +14,7 @@ L0/L1。目录和解析规则为主；只有 routing policy 形成复杂状态�
 
 拥有 provider、model definition/revision、tenant routing policy、provider health projection，以及
 解析请求所需的稳定排序和 fallback 规则。`tenant_id` 只作为 IAM/System 提供的上下文标识，Model
-不拥有 Site 的生命周期。
+不拥有 Tenant 的生命周期。
 
 不拥有 provider 网关实现、用户余额、套餐权益、Agent 执行、原始大 payload，也不拥有 IAM
 的用户/组织/权限表。
@@ -29,7 +29,7 @@ L0/L1。目录和解析规则为主；只有 routing policy 形成复杂状态�
 |---|---|---|---|
 | Provider 目录与状态 | `model_provider` | kokoro-model | kokoro-model catalog/admin application |
 | Model 定义与不可变 Revision | `model_definition`, `model_revision` | kokoro-model | kokoro-model catalog/admin application |
-| Site 路由策略 | `model_routing_policy` | kokoro-model | kokoro-model routing/admin application |
+| Tenant 路由策略 | `model_routing_policy` | kokoro-model | kokoro-model routing/admin application |
 | Provider 健康投影 | `model_provider_health_state` | kokoro-model | kokoro-model health worker |
 
 其他仓库只能通过 Model contract 读取解析结果；Agent 的执行清单和 Credit 的扣费事实
@@ -60,7 +60,7 @@ src/
   只能在同一请求快照内进行，不能跨请求隐式改变结果。
 - `model_revision` 发布后不可变；替换 provider/model 参数必须创建新 Revision，并由策略
   显式切换。
-- Model 对 IAM 只消费 SiteContext/authorization 输入；不直接 import IAM domain，也不
+- Model 对 IAM 只消费 受信 tenant context/authorization 输入；不直接 import IAM domain，也不
   直接查询 IAM 表。`tenant_id` 只作为 IAM/System 提供的 opaque 隔离上下文；Model 不拥有 Tenant 表，也不建立跨 owner 外键。
 - secret 只保存 secretRef，不保存明文。
 
@@ -80,7 +80,7 @@ adapters -> application ports（不得反向污染 domain）
 ```
 
 - 禁止 Model import `kokoro-iam`、`kokoro-credit`、`kokoro-payment`、`kokoro-agent` 的实现代码。
-- 禁止直接读取或写入其他 owner 的表；跨表关系只由 Root schema 的显式 FK/验证 SQL 管理。
+- 禁止直接读取或写入其他 owner 的表；跨表关系由 Application/Repository 校验，读取时使用参数化 SQL JOIN；Model schema 不建立外键。
 - 禁止把 LiteLLM provider payload、secret 或用户 prompt 进入 Model domain/persistence。
 - 禁止继续扩展旧 Platform registry 作为新的 Model 写入口。
 
