@@ -3,6 +3,6 @@
   "root_commit": "29160a675760e49a252042d467b815d40cc66655",
   "proto_sha256": {
     "kokoro/common/v1/common.proto": "35d2c47b734d0b8f9b4be59478947ccf32d437d90fb760bb271b7dc517812661",
-    "kokoro/model/v1/model_catalog.proto": "3dc2c3fb3d2b2bce28308a598abfce883bbd504bb519e54fbc86c71ff29234f3"
+    "kokoro/model/v1/model_catalog.proto": "9de803e0511c744374541c980bdcb6a1f4a6b66d846fc61f1f75fd2db71923b3"
   }
 }
