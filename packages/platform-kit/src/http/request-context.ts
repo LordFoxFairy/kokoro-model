@@ -16,19 +16,19 @@ const SYSTEM_PRINCIPAL: Principal = { kind: "system" };
 
 export interface RequestContext {
   requestId: string;
-  siteId: string | null;
+  tenantId: string | null;
   principal: Principal;
   teamId?: string;
 }
 
 const HEADER_REQUEST_ID = "x-kokoro-request-id";
-const HEADER_SITE_ID = "x-kokoro-site-id";
+const HEADER_TENANT_ID = "x-kokoro-tenant-id";
 const HEADER_TEAM_ID = "x-kokoro-team-id";
 const HEADER_PRINCIPAL = "x-kokoro-principal";
 
 export class SiteContextRequiredError extends Error {
   constructor() {
-    super("siteId is required for this operation");
+    super("tenantId is required for this operation");
     this.name = "SiteContextRequiredError";
   }
 }
@@ -55,19 +55,19 @@ function parsePrincipal(raw: string | undefined): Principal {
 
 export function readRequestContext(headers: IncomingHttpHeaders): RequestContext {
   const requestId = headerValue(headers, HEADER_REQUEST_ID) ?? randomUUID();
-  const siteId = headerValue(headers, HEADER_SITE_ID) ?? null;
+  const tenantId = headerValue(headers, HEADER_TENANT_ID) ?? null;
   const principal = parsePrincipal(headerValue(headers, HEADER_PRINCIPAL));
   const teamId = headerValue(headers, HEADER_TEAM_ID);
   return teamId === undefined
-    ? { requestId, siteId, principal }
-    : { requestId, siteId, principal, teamId };
+    ? { requestId, tenantId, principal }
+    : { requestId, tenantId, principal, teamId };
 }
 
 export function requireSite(context: RequestContext): string {
-  if (context.siteId === null) {
+  if (context.tenantId === null) {
     throw new SiteContextRequiredError();
   }
-  return context.siteId;
+  return context.tenantId;
 }
 
 // 序列化为出站 header，供跨服务调用透传链路上下文。
@@ -76,8 +76,8 @@ export function contextHeaders(context: RequestContext): Record<string, string> 
     [HEADER_REQUEST_ID]: context.requestId,
     [HEADER_PRINCIPAL]: JSON.stringify(context.principal),
   };
-  if (context.siteId !== null) {
-    headers[HEADER_SITE_ID] = context.siteId;
+  if (context.tenantId !== null) {
+    headers[HEADER_TENANT_ID] = context.tenantId;
   }
   if (context.teamId !== undefined) {
     headers[HEADER_TEAM_ID] = context.teamId;

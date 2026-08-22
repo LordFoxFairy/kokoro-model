@@ -5,7 +5,7 @@ export type ProviderAccountStatus = "active" | "disabled";
 export type ProviderHealthStatus = "unknown" | "healthy" | "degraded" | "down";
 export type ModelBindingStatus = "active" | "disabled";
 export type ModelLabelStatus = "active" | "disabled";
-export type SiteModelPolicyStatus = "visible" | "hidden";
+export type TenantModelPolicyStatus = "visible" | "hidden";
 
 export interface ProviderAccount extends DeletionAudit {
   id: string;
@@ -53,11 +53,11 @@ export interface ModelLabel extends DeletionAudit {
   updatedAt: Date;
 }
 
-export interface SiteModelPolicy extends DeletionAudit {
+export interface TenantModelPolicy extends DeletionAudit {
   id: string;
-  siteId: string;
+  tenantId: string;
   labelKey: string;
-  status: SiteModelPolicyStatus;
+  status: TenantModelPolicyStatus;
   createdAt: Date;
   updatedAt: Date;
 }

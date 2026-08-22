@@ -6,8 +6,8 @@ import type {
   ModelTransportKind,
   ProviderAccount,
   ProviderAccountStatus,
-  SiteModelPolicy,
-  SiteModelPolicyStatus,
+  TenantModelPolicy,
+  TenantModelPolicyStatus,
 } from "./model.js";
 import type { DeleteInput, ListOptions, RestoreInput } from "./model-lifecycle.js";
 
@@ -44,7 +44,7 @@ export interface ResolveModelInput {
   labelKey?: string | undefined;
   transportKind?: ModelTransportKind | undefined;
   // 缺省 = 不按站过滤；提供时排除命中该站 hidden 策略的 binding。
-  siteId?: string | undefined;
+  tenantId?: string | undefined;
 }
 
 export interface EnsureModelLabelInput {
@@ -57,10 +57,10 @@ export interface EnsureModelLabelInput {
   status?: ModelLabelStatus | undefined;
 }
 
-export interface UpsertSiteModelPolicyInput {
-  siteId: string;
+export interface UpsertTenantModelPolicyInput {
+  tenantId: string;
   labelKey: string;
-  status: SiteModelPolicyStatus;
+  status: TenantModelPolicyStatus;
 }
 
 export interface ModelRepository {
@@ -81,6 +81,6 @@ export interface ModelRepository {
   restoreProviderAccount(input: RestoreInput): Promise<ProviderAccount>;
   deleteModelBinding(input: DeleteInput): Promise<ModelBinding>;
   restoreModelBinding(input: RestoreInput): Promise<ModelBinding>;
-  upsertSiteModelPolicy(input: UpsertSiteModelPolicyInput): Promise<SiteModelPolicy>;
-  listSiteModelPolicies(siteId?: string | undefined): Promise<SiteModelPolicy[]>;
+  upsertTenantModelPolicy(input: UpsertTenantModelPolicyInput): Promise<TenantModelPolicy>;
+  listTenantModelPolicies(tenantId?: string | undefined): Promise<TenantModelPolicy[]>;
 }

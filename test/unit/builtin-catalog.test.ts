@@ -93,10 +93,10 @@ function captureRepo(captured: {
     restoreProviderAccount: async () => account,
     deleteModelBinding: async () => binding,
     restoreModelBinding: async () => binding,
-    upsertSiteModelPolicy: async () => {
+    upsertTenantModelPolicy: async () => {
       throw new Error("not used");
     },
-    listSiteModelPolicies: async () => [],
+    listTenantModelPolicies: async () => [],
   };
 }
 

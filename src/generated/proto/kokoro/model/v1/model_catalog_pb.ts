@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file kokoro/model/v1/model_catalog.proto.
  */
 export const file_kokoro_model_v1_model_catalog: GenFile = /*@__PURE__*/
-  fileDesc("CiNrb2tvcm8vbW9kZWwvdjEvbW9kZWxfY2F0YWxvZy5wcm90bxIPa29rb3JvLm1vZGVsLnYxIkkKE1Jlc29sdmVNb2RlbFJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRIPCgdzaXRlX2lkGAIgASgJEg0KBWxhYmVsGAMgASgJIuUBChRSZXNvbHZlTW9kZWxSZXNwb25zZRIZChFtb2RlbF9yZXZpc2lvbl9pZBgBIAEoCRITCgtwcm92aWRlcl9pZBgCIAEoCRIbChNwcm92aWRlcl9tb2RlbF9uYW1lGAMgASgJEjIKCXRyYW5zcG9ydBgEIAEoDjIfLmtva29yby5tb2RlbC52MS5Nb2RlbFRyYW5zcG9ydBIZChFyb3V0aW5nX3BvbGljeV9pZBgFIAEoCRIhChlyb3V0aW5nX3BvbGljeV9nZW5lcmF0aW9uGAYgASgEEg4KBmRpZ2VzdBgHIAEoCSpOCg5Nb2RlbFRyYW5zcG9ydBIfChtNT0RFTF9UUkFOU1BPUlRfVU5TUEVDSUZJRUQQABIbChdNT0RFTF9UUkFOU1BPUlRfTElURUxMTRABMnIKE01vZGVsQ2F0YWxvZ1NlcnZpY2USWwoMUmVzb2x2ZU1vZGVsEiQua29rb3JvLm1vZGVsLnYxLlJlc29sdmVNb2RlbFJlcXVlc3QaJS5rb2tvcm8ubW9kZWwudjEuUmVzb2x2ZU1vZGVsUmVzcG9uc2ViBnByb3RvMw");
+  fileDesc("CiNrb2tvcm8vbW9kZWwvdjEvbW9kZWxfY2F0YWxvZy5wcm90bxIPa29rb3JvLm1vZGVsLnYxIksKE1Jlc29sdmVNb2RlbFJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRIRCgl0ZW5hbnRfaWQYAiABKAkSDQoFbGFiZWwYAyABKAki5QEKFFJlc29sdmVNb2RlbFJlc3BvbnNlEhkKEW1vZGVsX3JldmlzaW9uX2lkGAEgASgJEhMKC3Byb3ZpZGVyX2lkGAIgASgJEhsKE3Byb3ZpZGVyX21vZGVsX25hbWUYAyABKAkSMgoJdHJhbnNwb3J0GAQgASgOMh8ua29rb3JvLm1vZGVsLnYxLk1vZGVsVHJhbnNwb3J0EhkKEXJvdXRpbmdfcG9saWN5X2lkGAUgASgJEiEKGXJvdXRpbmdfcG9saWN5X2dlbmVyYXRpb24YBiABKAQSDgoGZGlnZXN0GAcgASgJKk4KDk1vZGVsVHJhbnNwb3J0Eh8KG01PREVMX1RSQU5TUE9SVF9VTlNQRUNJRklFRBAAEhsKF01PREVMX1RSQU5TUE9SVF9MSVRFTExNEAEycgoTTW9kZWxDYXRhbG9nU2VydmljZRJbCgxSZXNvbHZlTW9kZWwSJC5rb2tvcm8ubW9kZWwudjEuUmVzb2x2ZU1vZGVsUmVxdWVzdBolLmtva29yby5tb2RlbC52MS5SZXNvbHZlTW9kZWxSZXNwb25zZWIGcHJvdG8z");
 
 /**
  * @generated from message kokoro.model.v1.ResolveModelRequest
@@ -24,9 +24,9 @@ export type ResolveModelRequest = Message<"kokoro.model.v1.ResolveModelRequest">
   requestId: string;
 
   /**
-   * @generated from field: string site_id = 2;
+   * @generated from field: string tenant_id = 2;
    */
-  siteId: string;
+  tenantId: string;
 
   /**
    * @generated from field: string label = 3;

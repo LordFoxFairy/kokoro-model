@@ -229,9 +229,9 @@ export function registerModelRoutes(app: FastifyInstance, service: ModelService)
     async (request, reply) => {
       try {
         const query = resolveModelBindingsQuerySchema.parse(request.query);
-        // siteId 来自 x-kokoro-site-id header（可空）；缺省时不按站过滤。
-        const siteId = readRequestContext(request.headers).siteId ?? undefined;
-        const result = await service.resolveModelBindings({ ...query, siteId });
+        // tenantId 来自 x-kokoro-tenant-id header（可空）；缺省时不按 tenant 过滤。
+        const tenantId = readRequestContext(request.headers).tenantId ?? undefined;
+        const result = await service.resolveModelBindings({ ...query, tenantId });
         return sendData(reply, result);
       } catch (error) {
         return handleModelError(error, reply, "model.binding_resolve_failed");

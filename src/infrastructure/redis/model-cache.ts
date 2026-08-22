@@ -4,8 +4,8 @@ import type { ModelResolveResult, ModelResolver } from "../../interfaces/rpc/ser
 
 const namespace = "kokoro:model:resolve:v1";
 
-function cacheKey(request: Pick<ResolveModelRequest, "siteId" | "label">): string {
-  return `${namespace}:${encodeURIComponent(request.siteId)}:${encodeURIComponent(request.label)}`;
+function cacheKey(request: Pick<ResolveModelRequest, "tenantId" | "label">): string {
+  return `${namespace}:${encodeURIComponent(request.tenantId)}:${encodeURIComponent(request.label)}`;
 }
 
 export function createRedisClient(url = process.env.KOKORO_REDIS_URL): Redis {
@@ -34,9 +34,9 @@ export class RedisCachedModelResolver {
     return result;
   }
 
-  async invalidate(siteId?: string, label?: string): Promise<void> {
-    if (siteId && label) {
-      await this.redis.del(cacheKey({ siteId, label }));
+  async invalidate(tenantId?: string, label?: string): Promise<void> {
+    if (tenantId && label) {
+      await this.redis.del(cacheKey({ tenantId, label }));
       return;
     }
     const keys = await this.redis.keys(`${namespace}:*`);
@@ -60,7 +60,7 @@ export function withRedisInvalidation<T extends object>(repository: T, redis: Re
     "ensureProviderAccount", "ensureModelBinding", "ensureModelLabel",
     "setProviderAccountStatus", "setModelBindingStatus", "deleteProviderAccount",
     "restoreProviderAccount", "deleteModelBinding", "restoreModelBinding",
-    "upsertSiteModelPolicy",
+    "upsertTenantModelPolicy",
   ]);
   return new Proxy(repository, {
     get(target, property, receiver) {

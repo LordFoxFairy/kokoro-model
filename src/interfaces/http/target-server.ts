@@ -4,7 +4,7 @@ import type { ModelResolver } from "../rpc/service.js";
 
 const resolveRequestSchema = z.object({
   requestId: z.string().min(1),
-  siteId: z.string().uuid(),
+  tenantId: z.string().uuid(),
   label: z.string().min(1),
 }).strict();
 

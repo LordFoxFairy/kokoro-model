@@ -23,7 +23,7 @@ const errorEnvelope = z.object({
 });
 const dataEnvelope = z.object({ data: z.unknown() });
 
-// 跨服务调用：透传上下文头（requestId/siteId/principal）+ 内部密钥；非 2xx 映射 AppError，响应经 schema 洗净。
+// 跨服务调用：透传上下文头（requestId/tenantId/principal）+ 内部密钥；非 2xx 映射 AppError，响应经 schema 洗净。
 export async function callService<T>(ctx: RequestContext, opts: CallServiceOptions<T>): Promise<T> {
   const doFetch = opts.fetchImpl ?? fetch;
   const headers: Record<string, string> = { ...contextHeaders(ctx) };

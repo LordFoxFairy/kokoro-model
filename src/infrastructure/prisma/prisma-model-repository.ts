@@ -5,7 +5,7 @@ import type {
   ModelLabel,
   ProviderAccount,
   ProviderAccountStatus,
-  SiteModelPolicy,
+  TenantModelPolicy,
 } from "../../domain/model.js";
 import { ModelLifecycleError, type DeleteInput, type ListOptions, type RestoreInput } from "../../domain/model-lifecycle.js";
 import type {
@@ -15,7 +15,7 @@ import type {
   ListModelBindingsFilter,
   ModelRepository,
   ResolveModelInput,
-  UpsertSiteModelPolicyInput,
+  UpsertTenantModelPolicyInput,
 } from "../../domain/repository.js";
 
 export class PrismaModelRepository implements ModelRepository {
@@ -177,7 +177,7 @@ export class PrismaModelRepository implements ModelRepository {
       orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
     });
 
-    const hiddenLabels = await this.hiddenLabelKeys(input.siteId);
+    const hiddenLabels = await this.hiddenLabelKeys(input.tenantId);
 
     return bindings
       .map(mapModelBinding)
@@ -185,13 +185,13 @@ export class PrismaModelRepository implements ModelRepository {
       .filter((binding) => !binding.labelKeys.some((key) => hiddenLabels.has(key)));
   }
 
-  // 缺省 siteId 返回空集合 → resolve 行为同旧（不按站过滤）。
-  private async hiddenLabelKeys(siteId: string | undefined): Promise<Set<string>> {
-    if (siteId === undefined) {
+  // 缺省 tenantId 返回空集合 → resolve 行为同旧（不按站过滤）。
+  private async hiddenLabelKeys(tenantId: string | undefined): Promise<Set<string>> {
+    if (tenantId === undefined) {
       return new Set();
     }
-    const policies = await this.prisma.siteModelPolicy.findMany({
-      where: { siteId, status: "hidden", deletedAt: null },
+    const policies = await this.prisma.tenantModelPolicy.findMany({
+      where: { tenantId, status: "hidden", deletedAt: null },
     });
     return new Set(policies.map((policy) => policy.labelKey));
   }
@@ -353,32 +353,32 @@ export class PrismaModelRepository implements ModelRepository {
     return mapModelBinding(restored);
   }
 
-  async upsertSiteModelPolicy(input: UpsertSiteModelPolicyInput): Promise<SiteModelPolicy> {
-    const policy = await this.prisma.siteModelPolicy.upsert({
+  async upsertTenantModelPolicy(input: UpsertTenantModelPolicyInput): Promise<TenantModelPolicy> {
+    const policy = await this.prisma.tenantModelPolicy.upsert({
       where: {
-        siteId_labelKey: { siteId: input.siteId, labelKey: input.labelKey },
+        tenantId_labelKey: { tenantId: input.tenantId, labelKey: input.labelKey },
       },
-      create: { siteId: input.siteId, labelKey: input.labelKey, status: input.status },
+      create: { tenantId: input.tenantId, labelKey: input.labelKey, status: input.status },
       update: { status: input.status },
     });
 
-    return mapSiteModelPolicy(policy);
+    return mapTenantModelPolicy(policy);
   }
 
-  async listSiteModelPolicies(siteId: string | undefined): Promise<SiteModelPolicy[]> {
-    const policies = await this.prisma.siteModelPolicy.findMany({
-      where: siteId === undefined ? { deletedAt: null } : { siteId, deletedAt: null },
+  async listTenantModelPolicies(tenantId: string | undefined): Promise<TenantModelPolicy[]> {
+    const policies = await this.prisma.tenantModelPolicy.findMany({
+      where: tenantId === undefined ? { deletedAt: null } : { tenantId, deletedAt: null },
       orderBy: { createdAt: "desc" },
       take: 100,
     });
 
-    return policies.map(mapSiteModelPolicy);
+    return policies.map(mapTenantModelPolicy);
   }
 }
 
-function mapSiteModelPolicy(policy: {
+function mapTenantModelPolicy(policy: {
   id: string;
-  siteId: string;
+  tenantId: string;
   labelKey: string;
   status: "visible" | "hidden";
   deletedAt: Date | null;
@@ -386,10 +386,10 @@ function mapSiteModelPolicy(policy: {
   deleteReason: string | null;
   createdAt: Date;
   updatedAt: Date;
-}): SiteModelPolicy {
+}): TenantModelPolicy {
   return {
     id: policy.id,
-    siteId: policy.siteId,
+    tenantId: policy.tenantId,
     labelKey: policy.labelKey,
     status: policy.status,
     deletedAt: policy.deletedAt,

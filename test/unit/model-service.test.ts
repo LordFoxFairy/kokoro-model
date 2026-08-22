@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ModelService } from "../../src/application/model-service.js";
-import type { ModelBinding, ModelLabel, ProviderAccount, SiteModelPolicy } from "../../src/domain/model.js";
+import type { ModelBinding, ModelLabel, ProviderAccount, TenantModelPolicy } from "../../src/domain/model.js";
 import type {
   EnsureModelBindingInput,
   EnsureModelLabelInput,
@@ -8,7 +8,7 @@ import type {
   ListModelBindingsFilter,
   ModelRepository,
   ResolveModelInput,
-  UpsertSiteModelPolicyInput,
+  UpsertTenantModelPolicyInput,
 } from "../../src/domain/repository.js";
 
 const account: ProviderAccount = {
@@ -66,9 +66,9 @@ const label: ModelLabel = {
   updatedAt: new Date(0),
 };
 
-const policy: SiteModelPolicy = {
+const policy: TenantModelPolicy = {
   id: "sp1",
-  siteId: "site-a",
+  tenantId: "site-a",
   labelKey: "chat.premium",
   status: "hidden",
   deletedAt: null,
@@ -84,7 +84,7 @@ interface Captured {
   filter?: ListModelBindingsFilter;
   resolve?: ResolveModelInput;
   label?: EnsureModelLabelInput;
-  policy?: UpsertSiteModelPolicyInput;
+  policy?: UpsertTenantModelPolicyInput;
   listPolicySiteId?: string | undefined;
   deleteProviderAccount?: { id: string; deletedBy: string; reason?: string | undefined };
   restoreProviderAccount?: { id: string };
@@ -135,12 +135,12 @@ function trackingRepo(captured: Captured): ModelRepository {
       captured.restoreModelBinding = input;
       return binding;
     },
-    upsertSiteModelPolicy: async (input) => {
+    upsertTenantModelPolicy: async (input) => {
       captured.policy = input;
       return policy;
     },
-    listSiteModelPolicies: async (siteId) => {
-      captured.listPolicySiteId = siteId;
+    listTenantModelPolicies: async (tenantId) => {
+      captured.listPolicySiteId = tenantId;
       return [policy];
     },
   };
@@ -226,36 +226,36 @@ describe("ModelService delegates to repository", () => {
     expect(captured.resolve).toBe(input);
   });
 
-  it("forwards resolveModelBindings siteId to repository", async () => {
+  it("forwards resolveModelBindings tenantId to repository", async () => {
     const captured: Captured = {};
     const service = new ModelService(trackingRepo(captured));
-    await service.resolveModelBindings({ featureKey: "chat", siteId: "site-a" });
-    expect(captured.resolve?.siteId).toBe("site-a");
+    await service.resolveModelBindings({ featureKey: "chat", tenantId: "site-a" });
+    expect(captured.resolve?.tenantId).toBe("site-a");
   });
 
-  it("forwards upsertSiteModelPolicy input and result", async () => {
+  it("forwards upsertTenantModelPolicy input and result", async () => {
     const captured: Captured = {};
     const service = new ModelService(trackingRepo(captured));
-    const input: UpsertSiteModelPolicyInput = {
-      siteId: "site-a",
+    const input: UpsertTenantModelPolicyInput = {
+      tenantId: "site-a",
       labelKey: "chat.premium",
       status: "hidden",
     };
-    await expect(service.upsertSiteModelPolicy(input)).resolves.toBe(policy);
+    await expect(service.upsertTenantModelPolicy(input)).resolves.toBe(policy);
     expect(captured.policy).toBe(input);
   });
 
-  it("forwards listSiteModelPolicies siteId and result", async () => {
+  it("forwards listTenantModelPolicies tenantId and result", async () => {
     const captured: Captured = {};
     const service = new ModelService(trackingRepo(captured));
-    await expect(service.listSiteModelPolicies("site-a")).resolves.toEqual([policy]);
+    await expect(service.listTenantModelPolicies("site-a")).resolves.toEqual([policy]);
     expect(captured.listPolicySiteId).toBe("site-a");
   });
 
-  it("forwards listSiteModelPolicies with omitted siteId", async () => {
+  it("forwards listTenantModelPolicies with omitted tenantId", async () => {
     const captured: Captured = {};
     const service = new ModelService(trackingRepo(captured));
-    await service.listSiteModelPolicies();
+    await service.listTenantModelPolicies();
     expect(captured.listPolicySiteId).toBeUndefined();
   });
 

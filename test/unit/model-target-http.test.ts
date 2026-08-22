@@ -17,7 +17,7 @@ describe("target MySQL + Redis HTTP boundary", () => {
     const app = createTargetHttpServer(async () => result);
     const health = await app.inject({ method: "GET", url: "/healthz" });
     const response = await app.inject({ method: "POST", url: "/resolve", payload: {
-      requestId: "request-1", siteId: result.modelRevisionId, label: "default",
+      requestId: "request-1", tenantId: result.modelRevisionId, label: "default",
     } });
     expect(health.statusCode).toBe(200);
     expect(response.statusCode).toBe(200);

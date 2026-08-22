@@ -8,7 +8,7 @@ const context = {} as HandlerContext;
 describe("ModelCatalogService RPC adapter", () => {
   it("maps a resolved route to the generated response message", async () => {
     const service = createModelCatalogService(async (request) => ({
-      modelRevisionId: `revision:${request.siteId}:${request.label}`,
+      modelRevisionId: `revision:${request.tenantId}:${request.label}`,
       providerId: "provider-1",
       providerModelName: "model-1",
       transport: ModelTransport.LITELLM,
@@ -20,7 +20,7 @@ describe("ModelCatalogService RPC adapter", () => {
     const response = await service.resolveModel({
       $typeName: "kokoro.model.v1.ResolveModelRequest",
       requestId: "request-1",
-      siteId: "site-1",
+      tenantId: "site-1",
       label: "default",
     }, context);
 
@@ -37,7 +37,7 @@ describe("ModelCatalogService RPC adapter", () => {
       service.resolveModel({
         $typeName: "kokoro.model.v1.ResolveModelRequest",
         requestId: "",
-        siteId: "site-1",
+        tenantId: "site-1",
         label: "default",
       }, context),
     ).rejects.toMatchObject({ code: Code.InvalidArgument });
@@ -50,7 +50,7 @@ describe("ModelCatalogService RPC adapter", () => {
       service.resolveModel({
         $typeName: "kokoro.model.v1.ResolveModelRequest",
         requestId: "request-1",
-        siteId: "site-1",
+        tenantId: "site-1",
         label: "missing",
       }, context),
     ).rejects.toBeInstanceOf(ConnectError);

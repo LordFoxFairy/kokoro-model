@@ -12,14 +12,14 @@ L0/L1。目录和解析规则为主；只有 routing policy 形成复杂状态�
 
 ## 拥有 / 不拥有
 
-拥有 provider、model definition/revision、site routing policy、provider health projection，以及
-解析请求所需的稳定排序和 fallback 规则。`site_id` 只作为 IAM/Site 提供的上下文标识，Model
+拥有 provider、model definition/revision、tenant routing policy、provider health projection，以及
+解析请求所需的稳定排序和 fallback 规则。`tenant_id` 只作为 IAM/System 提供的上下文标识，Model
 不拥有 Site 的生命周期。
 
 不拥有 provider 网关实现、用户余额、套餐权益、Agent 执行、原始大 payload，也不拥有 IAM
 的用户/组织/权限表。
 
-应用层的 `ProviderAccount`、`ModelBinding`、`ModelLabel` 和 `SiteModelPolicy` 仅是 domain API；物理事实统一收敛到
+应用层的 `ProviderAccount`、`ModelBinding`、`ModelLabel` 和 `TenantModelPolicy` 仅是 domain API；物理事实统一收敛到
 `model_provider`、`model_revision` 和 `model_routing_policy`，展示标签只在确有业务事实时
 作为 Model 模块内部投影保留。
 
@@ -56,12 +56,12 @@ src/
 - LiteLLM 是 `adapters/` 的 provider/gateway 实现，不是 Model domain。
 - `ResolveModel` 只返回已发布、可用的候选和 routing generation/digest，不决定最终扣费，
   不启动 Agent，也不返回 provider secret。
-- 解析排序必须由 `(site_id, label, priority, stable model revision key)` 决定；fallback
+- 解析排序必须由 `(tenant_id, label, priority, stable model revision key)` 决定；fallback
   只能在同一请求快照内进行，不能跨请求隐式改变结果。
 - `model_revision` 发布后不可变；替换 provider/model 参数必须创建新 Revision，并由策略
   显式切换。
 - Model 对 IAM 只消费 SiteContext/authorization 输入；不直接 import IAM domain，也不
-  直接查询 IAM 表。`site_site` 外键是数据库部署顺序上的跨 slice 关系，不代表业务反向拥有。
+  直接查询 IAM 表。`tenant_id` 只作为 IAM/System 提供的 opaque 隔离上下文；Model 不拥有 Tenant 表，也不建立跨 owner 外键。
 - secret 只保存 secretRef，不保存明文。
 
 ## 公开入口与契约
@@ -112,7 +112,7 @@ V1 完成门禁必须同时具备：
 - 旧 Platform Model 写面已退出 runtime，不存在双写或旧入口回流；
 - architecture test 能阻止越界 import、跨表写入和旧入口回流；
 - unit、integration、database、contract test 覆盖本卡的核心不变量，包括稳定排序、fallback、
-  site 隔离、revision 不可变和 secretRef 不落明文；
+  tenant 隔离、revision 不可变和 secretRef 不落明文；
 - 旧入口或旧写面已删除，或有明确的兼容截止版本和回滚方案。
 
 ## 迁移顺序

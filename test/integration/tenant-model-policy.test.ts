@@ -58,30 +58,30 @@ describe("site model policy API", () => {
     await prisma.$disconnect();
   });
 
-  it("upserts a policy and lists it, scoped by siteId", async () => {
+  it("upserts a policy and lists it, scoped by tenantId", async () => {
     const created = await app.inject({
       method: "POST",
-      url: "/admin/models/site-policies",
-      payload: { siteId: "site-a", labelKey: "chat.premium", status: "hidden" },
+      url: "/admin/models/tenant-policies",
+      payload: { tenantId: "site-a", labelKey: "chat.premium", status: "hidden" },
     });
     expect(created.statusCode).toBe(200);
     expect(created.json().data.status).toBe("hidden");
 
-    // upsert is idempotent on (siteId, labelKey): second call flips status, no duplicate.
+    // upsert is idempotent on (tenantId, labelKey): second call flips status, no duplicate.
     const updated = await app.inject({
       method: "POST",
-      url: "/admin/models/site-policies",
-      payload: { siteId: "site-a", labelKey: "chat.premium", status: "visible" },
+      url: "/admin/models/tenant-policies",
+      payload: { tenantId: "site-a", labelKey: "chat.premium", status: "visible" },
     });
     expect(updated.json().data.id).toBe(created.json().data.id);
     expect(updated.json().data.status).toBe("visible");
 
-    const all = await app.inject({ method: "GET", url: "/admin/models/site-policies" });
+    const all = await app.inject({ method: "GET", url: "/admin/models/tenant-policies" });
     expect(all.json().data).toHaveLength(1);
 
     const filtered = await app.inject({
       method: "GET",
-      url: "/admin/models/site-policies?siteId=site-b",
+      url: "/admin/models/tenant-policies?tenantId=site-b",
     });
     expect(filtered.json().data).toHaveLength(0);
   });
@@ -89,8 +89,8 @@ describe("site model policy API", () => {
   it("rejects an upsert with an unknown field", async () => {
     const response = await app.inject({
       method: "POST",
-      url: "/admin/models/site-policies",
-      payload: { siteId: "site-a", labelKey: "chat.premium", status: "hidden", junk: 1 },
+      url: "/admin/models/tenant-policies",
+      payload: { tenantId: "site-a", labelKey: "chat.premium", status: "hidden", junk: 1 },
     });
     expect(response.statusCode).toBe(400);
   });
@@ -100,8 +100,8 @@ describe("site model policy API", () => {
 
     await app.inject({
       method: "POST",
-      url: "/admin/models/site-policies",
-      payload: { siteId: "site-a", labelKey: "chat.premium", status: "hidden" },
+      url: "/admin/models/tenant-policies",
+      payload: { tenantId: "site-a", labelKey: "chat.premium", status: "hidden" },
     });
 
     // site-a: gpt-4o carries chat.premium (hidden) → excluded; mini stays.
@@ -141,8 +141,8 @@ describe("site model policy API", () => {
 
     await app.inject({
       method: "POST",
-      url: "/admin/models/site-policies",
-      payload: { siteId: "site-a", labelKey: "chat.premium", status: "visible" },
+      url: "/admin/models/tenant-policies",
+      payload: { tenantId: "site-a", labelKey: "chat.premium", status: "visible" },
     });
 
     const siteA = await app.inject({

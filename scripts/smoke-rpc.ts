@@ -7,7 +7,7 @@ import { createRedisClient, RedisCachedModelResolver } from "../src/infrastructu
 import { PrismaModelRepository } from "../src/infrastructure/prisma/prisma-model-repository.js";
 import { createModelRpcServer } from "../src/interfaces/rpc/server.js";
 
-const siteId = "00000000-0000-0000-0000-000000000011";
+const tenantId = "00000000-0000-0000-0000-000000000011";
 const prisma = createPrismaClient();
 const redis = createRedisClient();
 const repo = new PrismaModelRepository(prisma);
@@ -20,12 +20,12 @@ try {
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("RPC server did not bind");
   const client = createClient(ModelCatalogService, createConnectTransport({ baseUrl: `http://127.0.0.1:${address.port}`, httpVersion: "1.1" }));
-  const response = await client.resolveModel({ requestId: "rpc-smoke", siteId, label: "default" });
+  const response = await client.resolveModel({ requestId: "rpc-smoke", tenantId, label: "default" });
   if (response.modelRevisionId !== binding.id) throw new Error("RPC smoke returned an unexpected route");
   console.log("kokoro-model MySQL + Redis generated RPC smoke passed");
 } finally {
   await new Promise<void>((resolve) => server.close(() => resolve())).catch(() => undefined);
-  await redis.del(`kokoro:model:resolve:v1:${encodeURIComponent(siteId)}:default`).catch(() => undefined);
+  await redis.del(`kokoro:model:resolve:v1:${encodeURIComponent(tenantId)}:default`).catch(() => undefined);
   await prisma.modelBinding.delete({ where: { id: binding.id } }).catch(() => undefined);
   await prisma.providerAccount.delete({ where: { id: account.id } }).catch(() => undefined);
   await redis.quit();

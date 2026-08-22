@@ -1,6 +1,6 @@
 # kokoro-model
 
-`kokoro-model` 是模型目录与路由解析服务：根据 `site_id + label` 选择当前可用的模型 Revision，返回 Provider、模型名、transport、路由 generation 和 digest。它不执行模型生成、不处理 prompt、不扣费，也不保存 provider 明文密钥。
+`kokoro-model` 是模型目录与路由解析服务：根据 `tenant_id + label` 选择当前可用的模型 Revision，返回 Provider、模型名、transport、路由 generation 和 digest。它不执行模型生成、不处理 prompt、不扣费，也不保存 provider 明文密钥。
 
 ## V1 owner
 

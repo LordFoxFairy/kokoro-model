@@ -9,7 +9,7 @@ import {
   deleteRequestSchema,
   modelBindingParamsSchema,
   providerAccountParamsSchema,
-  upsertSiteModelPolicyRequestSchema,
+  upsertTenantModelPolicyRequestSchema,
 } from "./schemas.js";
 
 interface IdParams {
@@ -31,16 +31,16 @@ export function registerModelAdminRoutes(app: FastifyInstance, repository: Model
     sendData(reply, await repository.listModelLabels()),
   );
 
-  app.get<{ Querystring: { siteId?: string } }>(
-    "/admin/models/site-policies",
+  app.get<{ Querystring: { tenantId?: string } }>(
+    "/admin/models/tenant-policies",
     async (request, reply) =>
-      sendData(reply, await repository.listSiteModelPolicies(request.query.siteId)),
+      sendData(reply, await repository.listTenantModelPolicies(request.query.tenantId)),
   );
 
-  app.post("/admin/models/site-policies", async (request, reply) => {
+  app.post("/admin/models/tenant-policies", async (request, reply) => {
     try {
-      const input = upsertSiteModelPolicyRequestSchema.parse(request.body);
-      return sendData(reply, await repository.upsertSiteModelPolicy(input));
+      const input = upsertTenantModelPolicyRequestSchema.parse(request.body);
+      return sendData(reply, await repository.upsertTenantModelPolicy(input));
     } catch (error) {
       if (error instanceof ZodError) {
         return sendZodError(reply, error);

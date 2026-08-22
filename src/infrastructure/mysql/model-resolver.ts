@@ -12,11 +12,11 @@ export class MySQLModelResolver {
     this.repository = new PrismaModelRepository(prisma);
   }
 
-  async resolve(request: Pick<ResolveModelRequest, "requestId" | "siteId" | "label">): Promise<ModelResolveResult | null> {
+  async resolve(request: Pick<ResolveModelRequest, "requestId" | "tenantId" | "label">): Promise<ModelResolveResult | null> {
     const bindings = await this.repository.resolveModelBindings({
       featureKey: request.label,
       labelKey: request.label,
-      siteId: request.siteId,
+      tenantId: request.tenantId,
     });
     const binding = bindings[0];
     if (!binding) return null;

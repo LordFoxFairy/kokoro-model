@@ -5,7 +5,7 @@ import type {
   ListModelBindingsFilter,
   ModelRepository,
   ResolveModelInput,
-  UpsertSiteModelPolicyInput,
+  UpsertTenantModelPolicyInput,
 } from "../domain/repository.js";
 import type { DeleteInput, RestoreInput } from "../domain/model-lifecycle.js";
 
@@ -68,11 +68,11 @@ export class ModelService {
     return this.repository.restoreModelBinding(input);
   }
 
-  async upsertSiteModelPolicy(input: UpsertSiteModelPolicyInput) {
-    return this.repository.upsertSiteModelPolicy(input);
+  async upsertTenantModelPolicy(input: UpsertTenantModelPolicyInput) {
+    return this.repository.upsertTenantModelPolicy(input);
   }
 
-  async listSiteModelPolicies(siteId?: string | undefined) {
-    return this.repository.listSiteModelPolicies(siteId);
+  async listTenantModelPolicies(tenantId?: string | undefined) {
+    return this.repository.listTenantModelPolicies(tenantId);
   }
 }

@@ -34,7 +34,7 @@ describe("generated Model RPC transport", () => {
       }));
       const response = await client.resolveModel({
         requestId: "request-1",
-        siteId: "site-1",
+        tenantId: "site-1",
         label: "default",
       });
       expect(response.modelRevisionId).toBe("revision-1");

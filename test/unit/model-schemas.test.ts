@@ -10,8 +10,8 @@ import {
   modelTransportKindSchema,
   providerAccountParamsSchema,
   resolveModelBindingsQuerySchema,
-  siteModelPolicyStatusSchema,
-  upsertSiteModelPolicyRequestSchema,
+  tenantModelPolicyStatusSchema,
+  upsertTenantModelPolicyRequestSchema,
 } from "../../src/interfaces/http/schemas.js";
 
 const validAccount = {
@@ -147,34 +147,34 @@ describe("resolveModelBindingsQuerySchema boundaries", () => {
   });
 });
 
-describe("upsertSiteModelPolicyRequestSchema boundaries", () => {
-  const valid = { siteId: "site-a", labelKey: "chat.premium", status: "hidden" as const };
+describe("upsertTenantModelPolicyRequestSchema boundaries", () => {
+  const valid = { tenantId: "site-a", labelKey: "chat.premium", status: "hidden" as const };
 
   it("accepts a valid payload", () => {
-    expect(upsertSiteModelPolicyRequestSchema.parse(valid)).toEqual(valid);
+    expect(upsertTenantModelPolicyRequestSchema.parse(valid)).toEqual(valid);
   });
   it("rejects unknown fields", () => {
-    expect(() => upsertSiteModelPolicyRequestSchema.parse({ ...valid, junk: 1 })).toThrow();
+    expect(() => upsertTenantModelPolicyRequestSchema.parse({ ...valid, junk: 1 })).toThrow();
   });
-  it.each(["siteId", "labelKey"])("rejects empty %s", (field) => {
-    expect(() => upsertSiteModelPolicyRequestSchema.parse({ ...valid, [field]: "" })).toThrow();
+  it.each(["tenantId", "labelKey"])("rejects empty %s", (field) => {
+    expect(() => upsertTenantModelPolicyRequestSchema.parse({ ...valid, [field]: "" })).toThrow();
   });
-  it.each(["siteId", "labelKey", "status"])("rejects missing %s", (field) => {
+  it.each(["tenantId", "labelKey", "status"])("rejects missing %s", (field) => {
     const payload: Record<string, unknown> = { ...valid };
     delete payload[field];
-    expect(() => upsertSiteModelPolicyRequestSchema.parse(payload)).toThrow();
+    expect(() => upsertTenantModelPolicyRequestSchema.parse(payload)).toThrow();
   });
   it.each(["", "shown", "VISIBLE", "deleted"])("rejects invalid status %j", (status) => {
-    expect(() => upsertSiteModelPolicyRequestSchema.parse({ ...valid, status })).toThrow();
+    expect(() => upsertTenantModelPolicyRequestSchema.parse({ ...valid, status })).toThrow();
   });
 });
 
-describe("siteModelPolicyStatusSchema", () => {
+describe("tenantModelPolicyStatusSchema", () => {
   it.each(["visible", "hidden"])("accepts %j", (status) => {
-    expect(siteModelPolicyStatusSchema.parse(status)).toBe(status);
+    expect(tenantModelPolicyStatusSchema.parse(status)).toBe(status);
   });
   it.each(["", "shown", "HIDDEN"])("rejects %j", (status) => {
-    expect(() => siteModelPolicyStatusSchema.parse(status)).toThrow();
+    expect(() => tenantModelPolicyStatusSchema.parse(status)).toThrow();
   });
 });
 

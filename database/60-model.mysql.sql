@@ -100,7 +100,7 @@ CREATE TABLE `model_label` (
 -- CreateTable
 CREATE TABLE `model_routing_policy` (
     `routing_policy_id` VARCHAR(191) NOT NULL,
-    `site_id` VARCHAR(191) NOT NULL,
+    `tenant_id` VARCHAR(191) NOT NULL,
     `label_key` VARCHAR(191) NOT NULL,
     `model_revision_id` VARCHAR(191) NULL,
     `priority` INTEGER NOT NULL DEFAULT 100,
@@ -112,8 +112,8 @@ CREATE TABLE `model_routing_policy` (
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 
-    INDEX `model_routing_policy_site_id_label_key_status_deleted_at_pri_idx`(`site_id`, `label_key`, `status`, `deleted_at`, `priority`),
-    UNIQUE INDEX `model_routing_policy_site_id_label_key_key`(`site_id`, `label_key`),
+    INDEX `model_routing_policy_tenant_id_label_key_status_deleted_at_pri_idx`(`tenant_id`, `label_key`, `status`, `deleted_at`, `priority`),
+    UNIQUE INDEX `model_routing_policy_tenant_id_label_key_key`(`tenant_id`, `label_key`),
     PRIMARY KEY (`routing_policy_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

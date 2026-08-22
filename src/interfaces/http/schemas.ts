@@ -95,12 +95,12 @@ export const resolveModelBindingsQuerySchema = z
   })
   .strict();
 
-export const siteModelPolicyStatusSchema = z.enum(["visible", "hidden"]);
+export const tenantModelPolicyStatusSchema = z.enum(["visible", "hidden"]);
 
-export const upsertSiteModelPolicyRequestSchema = z
+export const upsertTenantModelPolicyRequestSchema = z
   .object({
-    siteId: z.string().min(1),
+    tenantId: z.string().min(1),
     labelKey: z.string().min(1),
-    status: siteModelPolicyStatusSchema,
+    status: tenantModelPolicyStatusSchema,
   })
   .strict();

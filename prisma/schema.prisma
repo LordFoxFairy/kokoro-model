@@ -105,22 +105,22 @@ model ModelLabel {
   @@map("model_label")
 }
 
-model SiteModelPolicy {
+model TenantModelPolicy {
   id              String                @id @default(cuid()) @map("routing_policy_id")
-  siteId          String                @map("site_id")
+  tenantId          String                @map("tenant_id")
   labelKey        String                @map("label_key")
   modelRevisionId String?               @map("model_revision_id")
   priority        Int                   @default(100)
   generation      BigInt                @default(1)
-  status          SiteModelPolicyStatus @default(visible)
+  status          TenantModelPolicyStatus @default(visible)
   deletedAt       DateTime?             @map("deleted_at")
   deletedBy       String?               @map("deleted_by")
   deleteReason    String?               @map("delete_reason")
   createdAt       DateTime              @default(now()) @map("created_at")
   updatedAt       DateTime              @updatedAt @map("updated_at")
 
-  @@unique([siteId, labelKey])
-  @@index([siteId, labelKey, status, deletedAt, priority])
+  @@unique([tenantId, labelKey])
+  @@index([tenantId, labelKey, status, deletedAt, priority])
   @@map("model_routing_policy")
 }
 
@@ -139,7 +139,7 @@ enum ModelDefinitionStatus {
   active
   disabled
 }
-enum SiteModelPolicyStatus {
+enum TenantModelPolicyStatus {
   visible
   hidden
 }

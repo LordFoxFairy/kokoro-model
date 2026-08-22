@@ -10,7 +10,7 @@ enum ModelTransport {
 
 message ResolveModelRequest {
   string request_id = 1;
-  string site_id = 2;
+  string tenant_id = 2;
   string label = 3;
 }
 

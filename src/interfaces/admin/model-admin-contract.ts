@@ -14,7 +14,7 @@ export const modelAdminContract: {
     { method: "GET", route: "/admin/models/provider-accounts" },
     { method: "GET", route: "/admin/models/bindings" },
     { method: "GET", route: "/admin/models/labels" },
-    { method: "GET", route: "/admin/models/site-policies" },
+    { method: "GET", route: "/admin/models/tenant-policies" },
     { method: "POST", route: "/provider-accounts/ensure" },
     { method: "DELETE", route: "/admin/models/provider-accounts/:providerAccountId" },
     { method: "POST", route: "/admin/models/provider-accounts/:providerAccountId/restore" },
@@ -26,7 +26,7 @@ export const modelAdminContract: {
     { method: "POST", route: "/admin/models/bindings/:modelBindingId/restore" },
     { method: "POST", route: "/admin/models/bindings/:id/disable" },
     { method: "POST", route: "/admin/models/bindings/:id/enable" },
-    { method: "POST", route: "/admin/models/site-policies" },
+    { method: "POST", route: "/admin/models/tenant-policies" },
   ],
   manifest: adminModuleManifestSchema.parse({
     id: "kokoro-model",
@@ -147,9 +147,9 @@ export const modelAdminContract: {
         ],
       },
       {
-        id: "site-policies",
+        id: "tenant-policies",
         labelKey: "admin.model.resources.sitePolicies",
-        route: "/admin/models/site-policies",
+        route: "/admin/models/tenant-policies",
         requiredPermission: "model.sitePolicy.read",
         actions: [
           {
@@ -157,7 +157,7 @@ export const modelAdminContract: {
             labelKey: "admin.model.actions.setSitePolicy",
             kind: "mutation",
             requiredPermission: "model.sitePolicy.write",
-            route: "/admin/models/site-policies",
+            route: "/admin/models/tenant-policies",
             method: "POST",
           },
         ],

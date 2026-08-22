@@ -35,7 +35,7 @@ describe("model admin contract", () => {
       .find((resource) => resource.id === "model-labels")
       ?.actions.map((action) => action.id);
     const policyActions = modelAdminContract.manifest.resources
-      .find((resource) => resource.id === "site-policies")
+      .find((resource) => resource.id === "tenant-policies")
       ?.actions.map((action) => action.id);
 
     expect(providerActions).toEqual(["create", "delete", "restore", "disable", "enable"]);

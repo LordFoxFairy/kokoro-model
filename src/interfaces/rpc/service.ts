@@ -21,7 +21,7 @@ export interface ModelResolveResult {
 
 export type ModelResolver = (request: {
   requestId: string;
-  siteId: string;
+  tenantId: string;
   label: string;
 }) => Promise<ModelResolveResult | null>;
 
@@ -30,12 +30,12 @@ export function createModelCatalogService(
 ): ServiceImpl<typeof ModelCatalogService> {
   return {
     async resolveModel(request: ResolveModelRequest): Promise<ResolveModelResponse> {
-      if (!request.requestId || !request.siteId || !request.label) {
-        throw new ConnectError("request_id, site_id and label are required", Code.InvalidArgument);
+      if (!request.requestId || !request.tenantId || !request.label) {
+        throw new ConnectError("request_id, tenant_id and label are required", Code.InvalidArgument);
       }
       const result = await resolve({
         requestId: request.requestId,
-        siteId: request.siteId,
+        tenantId: request.tenantId,
         label: request.label,
       });
       if (result === null) {
