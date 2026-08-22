@@ -1,6 +1,7 @@
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL_MODEL")
+  relationMode = "prisma"
 }
 
 generator client {
@@ -79,6 +80,7 @@ model ModelBinding {
   updatedAt         DateTime              @updatedAt @map("updated_at")
 
   @@unique([providerAccountId, modelName, transportKind])
+  @@index([modelId])
   @@index([featureKey, status, deletedAt, priority])
   @@index([provider, modelName])
   @@map("model_revision")

@@ -71,6 +71,7 @@ CREATE TABLE `model_revision` (
 
     INDEX `model_revision_feature_key_revision_status_deleted_at_priori_idx`(`feature_key`, `revision_status`, `deleted_at`, `priority`),
     INDEX `model_revision_provider_provider_model_name_idx`(`provider`, `provider_model_name`),
+    INDEX `model_revision_model_id_idx`(`model_id`),
     UNIQUE INDEX `model_revision_provider_id_provider_model_name_transport_key`(`provider_id`, `provider_model_name`, `transport`),
     PRIMARY KEY (`model_revision_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -126,13 +127,3 @@ CREATE TABLE `model_provider_health_state` (
 
     PRIMARY KEY (`provider_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- AddForeignKey
-ALTER TABLE `model_revision` ADD CONSTRAINT `model_revision_model_id_fkey` FOREIGN KEY (`model_id`) REFERENCES `model_definition`(`model_id`) ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `model_revision` ADD CONSTRAINT `model_revision_provider_id_fkey` FOREIGN KEY (`provider_id`) REFERENCES `model_provider`(`provider_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `model_provider_health_state` ADD CONSTRAINT `model_provider_health_state_provider_id_fkey` FOREIGN KEY (`provider_id`) REFERENCES `model_provider`(`provider_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
