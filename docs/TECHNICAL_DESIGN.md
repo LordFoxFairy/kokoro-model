@@ -10,7 +10,7 @@
 
 实现状态：当前 `kokoro-platform/kokoro-model` 仍是迁移来源，使用 Prisma/MySQL 的
 `ProviderAccount`、`ModelBinding`、`ModelLabel` 和 `SiteModelPolicy` 表。目标实现以
-Root PostgreSQL 的 `database/schema/60-model.sql` 为权威，旧写面迁移完成前不得形成双写。
+Root MySQL 的 `database/schema/60-model.sql` 为权威，旧写面迁移完成前不得形成双写。
 
 ## 业务职责
 
@@ -58,7 +58,7 @@ src/
 ├── health/                          provider health projection/worker
 ├── adapters/                        LiteLLM/provider adapter
 ├── interfaces/{http,rpc,admin}/
-├── infrastructure/postgres/
+├── infrastructure/mysql/
 ├── generated/                       Root contract 生成物
 ├── config/
 └── main.ts
@@ -101,7 +101,7 @@ Model 对 IAM 只消费 SiteContext/authorization 输入，不 import IAM 实现
 
 ## 当前实现与迁移映射
 
-| 当前 Prisma/MySQL 来源 | 目标 PostgreSQL 事实 | 迁移说明 |
+| 当前 Prisma/MySQL 来源 | 目标 MySQL 事实 | 迁移说明 |
 |---|---|---|
 | `ProviderAccount` | `model_provider` | 保留 provider/key/status/secretRef；明文 secret 不迁移 |
 | `ModelBinding` | `model_definition` + `model_revision` | 每次发布形成 Revision；旧 transport 值需显式映射 |
@@ -132,5 +132,12 @@ architecture  越界 import、跨表写入、旧入口回流。
 smoke         唯一生产入口和 Resolve 公开调用面。
 ```
 
-完成条件是目标目录真实存在、PostgreSQL owner 清单一致、契约生成检查通过、唯一 runtime
+完成条件是目标目录真实存在、MySQL owner 清单一致、契约生成检查通过、唯一 runtime
 writer 已切换，且旧入口已删除或具备明确兼容期限和回滚方案。
+
+## V1 runtime dependency closure
+
+- **MySQL** is the authoritative structured store and is accessed through Prisma's MySQL datasource and `PrismaModelRepository`.
+- **Redis** is a mandatory runtime dependency for resolve cache, short-lived health/lease state, and invalidation. It is not a durable source of truth.
+- HTTP and RPC startup perform `SELECT 1` and `PING`; `/readyz` reports both dependencies. A missing dependency is a failed readiness state, not a cache-only degraded mode.
+- Resolve uses cache-aside with the key namespace `kokoro:model:resolve:v1:{siteId}:{label}` and a bounded TTL. Write paths must invalidate the affected route namespace.

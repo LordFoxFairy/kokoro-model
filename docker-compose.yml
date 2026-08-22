@@ -1,14 +1,25 @@
 services:
-  postgres:
-    image: postgres:16
+  mysql:
+    image: mysql:8.4
     environment:
-      POSTGRES_DB: kokoro
-      POSTGRES_USER: kokoro_app
-      POSTGRES_PASSWORD: kokoro_local
+      MYSQL_DATABASE: kokoro
+      MYSQL_USER: kokoro_app
+      MYSQL_PASSWORD: kokoro_local
+      MYSQL_ROOT_PASSWORD: kokoro_root_local
     ports:
-      - "55432:5432"
+      - "53306:3306"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kokoro_app -d kokoro"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u kokoro_app -pkokoro_local --silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "56379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 2s
       timeout: 2s
       retries: 15
@@ -16,17 +27,20 @@ services:
   model-migrate:
     build: .
     environment:
-      DATABASE_URL_MODEL: postgresql://kokoro_app:kokoro_local@postgres:5432/kokoro
-      MODEL_DB_LOCAL: "1"
+      DATABASE_URL_MODEL: mysql://kokoro_app:kokoro_local@mysql:3306/kokoro
+      KOKORO_REDIS_URL: redis://redis:6379
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
-    command: pnpm db:postgres:local
+      redis:
+        condition: service_healthy
+    command: pnpm db:migrate
 
   model-http:
     build: .
     environment:
-      DATABASE_URL_MODEL: postgresql://kokoro_app:kokoro_local@postgres:5432/kokoro
+      DATABASE_URL_MODEL: mysql://kokoro_app:kokoro_local@mysql:3306/kokoro
+      KOKORO_REDIS_URL: redis://redis:6379
       KOKORO_MODEL_HTTP_PORT: "4221"
     depends_on:
       model-migrate:
@@ -38,7 +52,8 @@ services:
   model-rpc:
     build: .
     environment:
-      DATABASE_URL_MODEL: postgresql://kokoro_app:kokoro_local@postgres:5432/kokoro
+      DATABASE_URL_MODEL: mysql://kokoro_app:kokoro_local@mysql:3306/kokoro
+      KOKORO_REDIS_URL: redis://redis:6379
       KOKORO_MODEL_RPC_PORT: "4222"
     depends_on:
       model-migrate:

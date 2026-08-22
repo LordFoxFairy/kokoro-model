@@ -1,4 +1,3 @@
-# routing
+# Routing boundary
 
-Owns `ResolveModel` candidate selection, stable ordering, fallback snapshot, generation, and digest.
-The PostgreSQL query adapter is currently implemented in `infrastructure/postgres/model-resolver.ts`.
+Routing resolution is a domain concern. The MySQL repository supplies candidate bindings and the Redis adapter provides bounded cache-aside behavior at the target runtime boundary.

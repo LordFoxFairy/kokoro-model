@@ -13,9 +13,9 @@
 - 当前模型为 `ProviderAccount`、`ModelBinding`、`ModelLabel`、`SiteModelPolicy`；
 - 已有 HTTP/admin、seed、unit test、integration test 和 Docker/Kubernetes 运行入口；
 - Root contract 已定义 `kokoro.model.v1.ModelCatalogService/ResolveModel`，当前实现仍需完成 RPC 接入；
-- 最终 owner/schema 以根仓库 `database/schema/60-model.sql` 的 PostgreSQL 表为准。
+- 最终 owner/schema 以根仓库 `database/schema/60-model.sql` 的 MySQL 表为准。
 
-因此当前 package 通过测试不等于 Model 子仓库完成；独立仓库、独立 toolchain/lockfile/CI、契约生成闭环和 PostgreSQL owner 切换仍是完成门禁。
+因此当前 package 通过测试不等于 Model 子仓库完成；独立仓库、独立 toolchain/lockfile/CI、契约生成闭环和 MySQL owner 切换仍是完成门禁。
 
 ## 最终职责
 
@@ -42,7 +42,7 @@ src/
 ├── health/
 ├── adapters/
 ├── interfaces/{http,rpc,admin}/
-├── infrastructure/postgres/
+├── infrastructure/mysql/
 ├── generated/
 ├── config/
 └── main.ts
@@ -91,7 +91,7 @@ Model 完成前必须同时具备：
 
 - 独立 Git 仓库、package manager/toolchain、lockfile 和 CI；
 - README、技术方案、模块设计卡与实现一致；
-- PostgreSQL schema owner 和唯一 runtime writer 清单；
+- MySQL schema owner 和唯一 runtime writer 清单；
 - API/RPC contract、生成客户端、consumer 检查；
 - HTTP/RPC 启动入口、配置、部署和本地 smoke；
 - architecture、unit、integration、database、contract test；
@@ -104,3 +104,7 @@ Model 完成前必须同时具备：
 - 只有设计卡 100/100；
 - 只有 Prisma client 生成成功；
 - 只有 Docker/Kubernetes manifest 存在。
+
+## Local runtime
+
+The standalone target runs with both MySQL and Redis. Start the closure with `docker compose up --build`; HTTP is exposed on `4221`, RPC on `4222`, MySQL on `53306`, and Redis on `56379`. Readiness requires both dependencies.

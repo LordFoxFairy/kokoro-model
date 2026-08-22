@@ -10,6 +10,8 @@ import Fastify from "fastify";
 import { ModelService } from "../../application/model-service.js";
 import { createPrismaClient } from "../../infrastructure/prisma/prisma-client.js";
 import { PrismaModelRepository } from "../../infrastructure/prisma/prisma-model-repository.js";
+import { createRedisClient, withRedisInvalidation } from "../../infrastructure/redis/model-cache.js";
+import type { Redis } from "ioredis";
 import { registerModelAdminRoutes } from "./admin-routes.js";
 import { registerModelRoutes } from "./routes.js";
 
@@ -17,6 +19,7 @@ export interface CreateModelServerOptions {
   prisma?: PrismaClient;
   // 入站访问控制配置；不传=空 secret + 非生产=dev 直通（测试/本地）；生产由 main.ts 注入 per-caller secret。
   routeAccess?: RouteAccessConfig;
+  redis?: Redis;
 }
 
 // model 所需 caller 凭据：session(model-bindings/resolve 可用性权威) + admin(网关) 入站。model 无出站。
@@ -42,7 +45,10 @@ export function createModelServer(options: CreateModelServerOptions = {}) {
   declareRouteAccess(app, "/docs", "runtime-internal");
 
   const prisma = options.prisma ?? createPrismaClient();
-  const repository = new PrismaModelRepository(prisma);
+  const baseRepository = new PrismaModelRepository(prisma);
+  const ownedRedis = options.redis ? undefined : (process.env.KOKORO_REDIS_URL ? createRedisClient() : undefined);
+  const redis = options.redis ?? ownedRedis;
+  const repository = redis ? withRedisInvalidation(baseRepository, redis) : baseRepository;
   const service = new ModelService(repository);
 
   // WHY: 路由须包进异步 plugin，确保在 swagger(void register 入队)之后加载，否则 onRoute 漏采 → /docs/json paths 为空。
@@ -52,9 +58,8 @@ export function createModelServer(options: CreateModelServerOptions = {}) {
   });
 
   app.addHook("onClose", async () => {
-    if (!options.prisma) {
-      await prisma.$disconnect();
-    }
+    if (ownedRedis) await ownedRedis.quit();
+    if (!options.prisma) await prisma.$disconnect();
   });
 
   return app;

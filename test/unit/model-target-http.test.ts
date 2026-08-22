@@ -12,9 +12,9 @@ const result: ModelResolveResult = {
   digest: "digest",
 };
 
-describe("target PostgreSQL HTTP boundary", () => {
+describe("target MySQL + Redis HTTP boundary", () => {
   it("exposes health and resolve over the local HTTP surface", async () => {
-    const app = createTargetHttpServer({ resolve: async () => result } as never);
+    const app = createTargetHttpServer(async () => result);
     const health = await app.inject({ method: "GET", url: "/healthz" });
     const response = await app.inject({ method: "POST", url: "/resolve", payload: {
       requestId: "request-1", siteId: result.modelRevisionId, label: "default",
