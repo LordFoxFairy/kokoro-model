@@ -1,0 +1,44 @@
+{
+  "name": "@kokoro/model",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.2.2",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "dev": "tsx src/interfaces/http/main.ts",
+    "start": "tsx src/interfaces/http/main.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:dev": "prisma migrate dev",
+    "db:reset": "prisma migrate reset --force",
+    "seed:builtin": "tsx src/bootstrap/seed-builtin.ts",
+    "test": "vitest run test/unit",
+    "test:integration": "vitest run test/integration --no-file-parallelism",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "coverage": "vitest run --coverage --no-file-parallelism",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@kokoro/platform-kit": "workspace:*",
+    "@prisma/client": "^6.19.3",
+    "fastify": "^5.6.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "prisma": "^6.19.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
+  }
+}
