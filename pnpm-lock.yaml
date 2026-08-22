@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@connectrpc/connect':
+        specifier: 2.0.0
+        version: 2.0.0(@bufbuild/protobuf@2.14.0)
+      '@connectrpc/connect-node':
+        specifier: 2.0.0
+        version: 2.0.0(@bufbuild/protobuf@2.14.0)(@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.14.0))
       '@kokoro/platform-kit':
         specifier: workspace:*
         version: link:packages/platform-kit
@@ -141,6 +147,18 @@ packages:
 
   '@bufbuild/protoplugin@2.14.0':
     resolution: {integrity: sha512-S0TvZhVtTEkZQRj2JsXBCXiib/b0+bLQtJCcn+hj9O/usgbcgxHn4D+ii22Ao3qj0/kKxVYeo7BtAI2dMk+iig==}
+
+  '@connectrpc/connect-node@2.0.0':
+    resolution: {integrity: sha512-DoI5T+SUvlS/8QBsxt2iDoUg15dSxqhckegrgZpWOtADtmGohBIVbx1UjtWmjLBrP4RdD0FeBw+XyRUSbpKnJQ==}
+    engines: {node: '>=18.14.1'}
+    peerDependencies:
+      '@bufbuild/protobuf': ^2.2.0
+      '@connectrpc/connect': 2.0.0
+
+  '@connectrpc/connect@2.0.0':
+    resolution: {integrity: sha512-Usm8jgaaULANJU8vVnhWssSA6nrZ4DJEAbkNtXSoZay2YD5fDyMukCxu8NEhCvFzfHvrhxhcjttvgpyhOM7xAQ==}
+    peerDependencies:
+      '@bufbuild/protobuf': ^2.2.0
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -1309,6 +1327,15 @@ snapshots:
       typescript: 5.4.5
     transitivePeerDependencies:
       - supports-color
+
+  '@connectrpc/connect-node@2.0.0(@bufbuild/protobuf@2.14.0)(@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.14.0))':
+    dependencies:
+      '@bufbuild/protobuf': 2.14.0
+      '@connectrpc/connect': 2.0.0(@bufbuild/protobuf@2.14.0)
+
+  '@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.14.0)':
+    dependencies:
+      '@bufbuild/protobuf': 2.14.0
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true
