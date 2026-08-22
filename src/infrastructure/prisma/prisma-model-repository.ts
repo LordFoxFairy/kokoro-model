@@ -188,7 +188,7 @@ export class PrismaModelRepository implements ModelRepository {
       return new Set();
     }
     const policies = await this.prisma.siteModelPolicy.findMany({
-      where: { siteId, status: "hidden" },
+      where: { siteId, status: "hidden", deletedAt: null },
     });
     return new Set(policies.map((policy) => policy.labelKey));
   }
@@ -242,6 +242,7 @@ export class PrismaModelRepository implements ModelRepository {
         tier: input.tier ?? null,
         defaultBindingId: input.defaultBindingId ?? null,
         ...defined("status", input.status),
+        ...restoreData(),
       },
     });
     return mapModelLabel(label);
@@ -363,7 +364,7 @@ export class PrismaModelRepository implements ModelRepository {
 
   async listSiteModelPolicies(siteId: string | undefined): Promise<SiteModelPolicy[]> {
     const policies = await this.prisma.siteModelPolicy.findMany({
-      where: siteId === undefined ? {} : { siteId },
+      where: siteId === undefined ? { deletedAt: null } : { siteId, deletedAt: null },
       orderBy: { createdAt: "desc" },
       take: 100,
     });
@@ -377,6 +378,9 @@ function mapSiteModelPolicy(policy: {
   siteId: string;
   labelKey: string;
   status: "visible" | "hidden";
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  deleteReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }): SiteModelPolicy {
@@ -385,6 +389,9 @@ function mapSiteModelPolicy(policy: {
     siteId: policy.siteId,
     labelKey: policy.labelKey,
     status: policy.status,
+    deletedAt: policy.deletedAt,
+    deletedBy: policy.deletedBy,
+    deleteReason: policy.deleteReason,
     createdAt: policy.createdAt,
     updatedAt: policy.updatedAt,
   };
@@ -481,6 +488,9 @@ function mapModelLabel(label: {
   tier: string | null;
   defaultBindingId: string | null;
   status: "active" | "disabled";
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  deleteReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }): ModelLabel {
@@ -493,6 +503,9 @@ function mapModelLabel(label: {
     tier: label.tier,
     defaultBindingId: label.defaultBindingId,
     status: label.status,
+    deletedAt: label.deletedAt,
+    deletedBy: label.deletedBy,
+    deleteReason: label.deleteReason,
     createdAt: label.createdAt,
     updatedAt: label.updatedAt,
   };

@@ -40,7 +40,7 @@ export interface ModelBinding extends DeletionAudit {
   updatedAt: Date;
 }
 
-export interface ModelLabel {
+export interface ModelLabel extends DeletionAudit {
   id: string;
   key: string;
   displayName: string;
@@ -53,7 +53,7 @@ export interface ModelLabel {
   updatedAt: Date;
 }
 
-export interface SiteModelPolicy {
+export interface SiteModelPolicy extends DeletionAudit {
   id: string;
   siteId: string;
   labelKey: string;

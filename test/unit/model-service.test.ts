@@ -59,6 +59,9 @@ const label: ModelLabel = {
   tier: null,
   defaultBindingId: null,
   status: "active",
+  deletedAt: null,
+  deletedBy: null,
+  deleteReason: null,
   createdAt: new Date(0),
   updatedAt: new Date(0),
 };
@@ -68,6 +71,9 @@ const policy: SiteModelPolicy = {
   siteId: "site-a",
   labelKey: "chat.premium",
   status: "hidden",
+  deletedAt: null,
+  deletedBy: null,
+  deleteReason: null,
   createdAt: new Date(0),
   updatedAt: new Date(0),
 };

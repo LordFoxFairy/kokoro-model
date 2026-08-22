@@ -23,11 +23,12 @@ const required = [
   "src/interfaces/http/target-main.ts",
   "src/interfaces/rpc/main.ts",
   "docker-compose.yml",
+  "database/60-model.mysql.sql",
 ];
 const missing = required.filter((file) => !existsSync(file));
 if (missing.length) throw new Error(`missing standalone artifacts: ${missing.join(", ")}`);
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
-for (const script of ["dev", "start", "legacy:http", "contract:check", "db:migrate", "smoke:mysql", "smoke:redis", "smoke:rpc"]) {
+for (const script of ["dev", "start", "contract:check", "db:migrate", "smoke:mysql", "smoke:redis", "smoke:rpc"]) {
   if (!packageJson.scripts?.[script]) throw new Error(`missing package script: ${script}`);
 }
 if (!readFileSync(".env.example", "utf8").includes("mysql://")) throw new Error("standalone env must point at MySQL");

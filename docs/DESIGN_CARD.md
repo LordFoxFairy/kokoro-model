@@ -1,6 +1,6 @@
 # kokoro-model 设计卡
 
-状态：目标设计已细化；当前实现仍处于从 `kokoro-platform/kokoro-model` 迁移阶段。
+状态：V1 目标设计与 runtime 基线已确定；MySQL DDL、Repository、Redis readiness 和 RPC contract 统一。
 
 ## 定位
 
@@ -19,8 +19,7 @@ L0/L1。目录和解析规则为主；只有 routing policy 形成复杂状态�
 不拥有 provider 网关实现、用户余额、套餐权益、Agent 执行、原始大 payload，也不拥有 IAM
 的用户/组织/权限表。
 
-旧实现中的 `ProviderAccount`、`ModelBinding`、`ModelLabel` 和 `SiteModelPolicy` 是迁移来源；
-它们不得继续形成第二套生产写面。目标 schema 中的对应事实分别收敛到
+应用层的 `ProviderAccount`、`ModelBinding`、`ModelLabel` 和 `SiteModelPolicy` 仅是 domain API；物理事实统一收敛到
 `model_provider`、`model_revision` 和 `model_routing_policy`，展示标签只在确有业务事实时
 作为 Model 模块内部投影保留。
 
@@ -93,25 +92,24 @@ adapters -> application ports（不得反向污染 domain）
 - Model 不直接访问 Credit 或 Payment 表。
 - contract consumer 与生成目录一致。
 - published revision 不可变、active route 只能指向已发布 LiteLLM revision。
-- 设计审计能区分目标 MySQL schema 与旧 Prisma/MySQL 迁移来源。
+- 设计审计能区分MySQL DDL、Prisma schema 与 Repository。
 
 
 ## 当前落地证据与迁移门禁
 
 当前代码证据（只证明现状，不等于目标已完成）：
 
-- `database/schema/60-model.sql`
+- `database/schema/60-model.mysql.sql`
 - `database/slices/slice-a.json`（Model 表清单与 slice 归属）
 - `contract/proto/kokoro/model/v1/model_catalog.proto`
 - `contract/consumers.yaml`（Model 与 Agent 的生成消费关系）
 - `kokoro-platform/kokoro-model`
 
-迁移完成前必须同时具备：
+V1 完成门禁必须同时具备：
 
 - schema 与唯一 owner / runtime writer 清单一致；
 - 公开 contract、生成物和 consumer 清单一致；
-- `kokoro-platform/kokoro-model` 的旧 Prisma/MySQL 写面已迁移到目标 MySQL owner，
-  并不存在双写或旧入口回流；
+- 旧 Platform Model 写面已退出 runtime，不存在双写或旧入口回流；
 - architecture test 能阻止越界 import、跨表写入和旧入口回流；
 - unit、integration、database、contract test 覆盖本卡的核心不变量，包括稳定排序、fallback、
   site 隔离、revision 不可变和 secretRef 不落明文；
@@ -123,8 +121,6 @@ adapters -> application ports（不得反向污染 domain）
    owner、约束和跨 slice FK。
 2. 以 `model_catalog.proto` 固化 Resolve 请求/响应，生成 TypeScript/Python consumer，
    先接入只读解析路径。
-3. 将旧 ProviderAccount/Binding/Label 数据映射为 Provider/Revision/Policy，完成一次性
-   校验和回滚快照；迁移期间旧写面只读。
-4. 接入 Model 的 catalog、routing、health 模块和 admin application，启用唯一 runtime writer。
-5. 运行 architecture、database、contract、integration 和公开入口 smoke 验证后，删除旧
-   Prisma/MySQL 写面，并更新 owner inventory、consumer 清单和迁移记录。
+3. 由 MySQL migration 创建最终表，并通过 Repository transaction 写入 Provider/Definition/Revision/Policy。
+4. 所有删除走软删除或状态退役；Revision 保持不可变，Redis 在写入成功后失效。
+5. 运行 architecture、database、contract、integration 和公开入口 smoke 验证，确认唯一 runtime writer。

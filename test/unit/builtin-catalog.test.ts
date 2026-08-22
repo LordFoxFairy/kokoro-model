@@ -63,6 +63,9 @@ function captureRepo(captured: {
     tier: "standard",
     defaultBindingId: "mb_builtin",
     status: "active",
+    deletedAt: null,
+    deletedBy: null,
+    deleteReason: null,
     createdAt: NOW,
     updatedAt: NOW,
   };

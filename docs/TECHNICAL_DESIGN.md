@@ -1,143 +1,126 @@
-# kokoro-model 技术方案
+# kokoro-model 设计卡
 
-> 执行级设计以 [Model 设计卡](../technical/backend-design/02-model.md) 为准。
+状态：V1 目标设计与 runtime 基线已确定；MySQL DDL、Repository、Redis readiness 和 RPC contract 统一。
 
 ## 定位
 
-`kokoro-model` 是模型 Provider、Model Definition/Revision、站点路由策略和 Provider 健康
-投影的唯一业务 owner。它回答“给定 SiteContext 和 label，当前可以解析到哪些已发布模型、
-按什么稳定顺序回落、使用哪个 transport”，不执行生成，也不负责扣费。
+模型目录、Provider、Model Definition/Revision、Binding、Routing Policy 和健康投影的 owner。
 
-实现状态：当前 `kokoro-platform/kokoro-model` 仍是迁移来源，使用 Prisma/MySQL 的
-`ProviderAccount`、`ModelBinding`、`ModelLabel` 和 `SiteModelPolicy` 表。目标实现以
-Root MySQL 的 `database/schema/60-model.sql` 为权威，旧写面迁移完成前不得形成双写。
+## 领域等级
 
-## 业务职责
+L0/L1。目录和解析规则为主；只有 routing policy 形成复杂状态机时局部升级 L2。
 
-拥有：
+## 拥有 / 不拥有
 
-```text
-model_provider             Provider 目录、secretRef 引用、生命周期状态。
-model_definition           稳定模型目录实体。
-model_revision             Provider 模型参数和能力快照；发布后不可变。
-model_routing_policy       Site + label 的路由、优先级和 fallback 输入。
-model_provider_health_state Provider 健康状态投影。
-```
+拥有 provider、model definition/revision、site routing policy、provider health projection，以及
+解析请求所需的稳定排序和 fallback 规则。`site_id` 只作为 IAM/Site 提供的上下文标识，Model
+不拥有 Site 的生命周期。
 
-不拥有：
+不拥有 provider 网关实现、用户余额、套餐权益、Agent 执行、原始大 payload，也不拥有 IAM
+的用户/组织/权限表。
 
-```text
-Site / Identity / 权限       kokoro-iam 及 Site owner。
-Provider 网关运行时          LiteLLM 或其它 provider adapter/runtime。
-用户余额、价格、扣费          kokoro-credit / kokoro-payment。
-Agent 执行、prompt、产物       kokoro-agent / kokoro-storage。
-```
+应用层的 `ProviderAccount`、`ModelBinding`、`ModelLabel` 和 `SiteModelPolicy` 仅是 domain API；物理事实统一收敛到
+`model_provider`、`model_revision` 和 `model_routing_policy`，展示标签只在确有业务事实时
+作为 Model 模块内部投影保留。
 
-旧 `ProviderAccount`、`ModelBinding`、`ModelLabel` 仅作为迁移来源，不是目标领域模型或
-第二套生产写入口。
+## 数据 owner 与唯一写入者
 
-## 数据 owner
+| 数据 | 物理表 | owner | runtime writer |
+|---|---|---|---|
+| Provider 目录与状态 | `model_provider` | kokoro-model | kokoro-model catalog/admin application |
+| Model 定义与不可变 Revision | `model_definition`, `model_revision` | kokoro-model | kokoro-model catalog/admin application |
+| Site 路由策略 | `model_routing_policy` | kokoro-model | kokoro-model routing/admin application |
+| Provider 健康投影 | `model_provider_health_state` | kokoro-model | kokoro-model health worker |
 
-```text
-model_provider                 kokoro-model catalog/admin application
-model_definition/revision      kokoro-model catalog/admin application
-model_routing_policy           kokoro-model routing/admin application
-model_provider_health_state    kokoro-model health worker
-```
-
-Agent、Credit 等仓库可以保存 `model_revision_id` 作为引用，但不得直接读写上述 Model 表。
-`site_site` 外键只表达数据库部署顺序和引用完整性，不改变 Site 的业务 owner。
+其他仓库只能通过 Model contract 读取解析结果；Agent 的执行清单和 Credit 的扣费事实
+可以引用 `model_revision_id`，但不得写入 Model 表。
 
 ## 目标目录
 
 ```text
 src/
-├── catalog/                         Provider、Definition、Revision
-├── routing/                         Resolve、稳定排序和 fallback
-├── policies/                        Site/label 路由策略
-├── health/                          provider health projection/worker
-├── adapters/                        LiteLLM/provider adapter
+├── catalog/
+├── routing/
+├── policies/
+├── health/                         provider health projection/worker
+├── adapters/                       LiteLLM/provider adapter；不承载领域规则
 ├── interfaces/{http,rpc,admin}/
 ├── infrastructure/mysql/
-├── generated/                       Root contract 生成物
+├── generated/
 ├── config/
 └── main.ts
 ```
 
-目录按业务模块组织；`adapters/` 只负责外部协议适配，不把 Provider payload、secret 或
-网关运行时状态带入 Model domain。
+## 关键边界
 
-## 公开契约与调用边界
+- LiteLLM 是 `adapters/` 的 provider/gateway 实现，不是 Model domain。
+- `ResolveModel` 只返回已发布、可用的候选和 routing generation/digest，不决定最终扣费，
+  不启动 Agent，也不返回 provider secret。
+- 解析排序必须由 `(site_id, label, priority, stable model revision key)` 决定；fallback
+  只能在同一请求快照内进行，不能跨请求隐式改变结果。
+- `model_revision` 发布后不可变；替换 provider/model 参数必须创建新 Revision，并由策略
+  显式切换。
+- Model 对 IAM 只消费 SiteContext/authorization 输入；不直接 import IAM domain，也不
+  直接查询 IAM 表。`site_site` 外键是数据库部署顺序上的跨 slice 关系，不代表业务反向拥有。
+- secret 只保存 secretRef，不保存明文。
 
-服务间唯一公开解析契约：
+## 公开入口与契约
 
-```text
-kokoro.model.v1.ModelCatalogService/ResolveModel
-source: contract/proto/kokoro/model/v1/model_catalog.proto
-consumers: kokoro-model, kokoro-agent
-```
+- 服务间公开入口：`kokoro.model.v1.ModelCatalogService/ResolveModel`。
+- 契约源：`contract/proto/kokoro/model/v1/model_catalog.proto`。
+- 生成消费方：`kokoro-model` 与 `kokoro-agent`；生成物必须来自 Root `contract/`，不得手改。
+- 管理入口可以由 Admin Gateway 调用 Model 的 HTTP/admin surface，但管理路由不是跨仓领域
+  契约，也不能被 Agent 当作 runtime API。
 
-`ResolveModel` 必须只返回已发布且可用的候选、`routing_policy_generation` 和 digest；不
-返回 secret，不启动 Agent，不判断余额，不执行最终扣费。管理 HTTP 面可由 Admin Gateway
-调用，但管理路由不是 Agent 的 runtime contract。
-
-Model 对 IAM 只消费 SiteContext/authorization 输入，不 import IAM 实现代码，也不直接查
-询 IAM 表。跨仓生成类型只能来自 Root `contract/`，禁止手工维护副本。
-
-## 解析规则
-
-目标解析以同一数据库快照完成：
-
-```text
-1. 校验 SiteContext 和 label 输入。
-2. 选择 active 的 site routing policy。
-3. 仅接受 published revision；active route 必须指向 LiteLLM revision。
-4. 以 priority asc + 稳定 revision key 排序。
-5. 在同一请求快照内执行 fallback，并返回 generation/digest。
-```
-
-`model_revision` 发布后不可修改；Provider/model 参数变化必须创建新 Revision，再由策略
-显式切换。解析结果不携带 provider secret，也不隐式跨请求改变排序。
-
-## 当前实现与迁移映射
-
-| 当前 Prisma/MySQL 来源 | 目标 MySQL 事实 | 迁移说明 |
-|---|---|---|
-| `ProviderAccount` | `model_provider` | 保留 provider/key/status/secretRef；明文 secret 不迁移 |
-| `ModelBinding` | `model_definition` + `model_revision` | 每次发布形成 Revision；旧 transport 值需显式映射 |
-| `ModelLabel` | `model_routing_policy.label` 的业务输入 | 展示标签不是独立 runtime 写面，除非后续证明其为独立事实 |
-| `SiteModelPolicy` | `model_routing_policy` | 迁移为 site + label + revision + priority + status |
-| `healthStatus` | `model_provider_health_state` | 健康观测与目录事实分离 |
-
-迁移顺序：先固化 schema/owner，再生成 Resolve consumer，接入只读解析，完成数据映射和
-回滚快照，最后切换唯一 writer 并删除旧 Prisma/MySQL 写面。
-
-## 禁止项
-
-- Model 不 import IAM、Credit、Payment、Agent 的实现代码。
-- Model 不直接访问其他 owner 的表，不向旧 Platform registry 增加新写入口。
-- 不把价格、quota、用户 prompt、原始 provider payload 或 secret 写入 Model persistence。
-- 不以目录移动冒充 owner、契约、测试和旧入口迁移完成。
-
-## 测试与完成门禁
-
-必须覆盖：
+## 依赖方向与禁止项
 
 ```text
-unit          stable ordering、fallback、transport/secretRef 规则。
-database      owner、唯一性、site FK、published revision immutable、active route 约束。
-contract      Resolve proto、生成物 provenance、consumer 清单。
-integration   site isolation、disabled/unhealthy provider、revision 切换。
-architecture  越界 import、跨表写入、旧入口回流。
-smoke         唯一生产入口和 Resolve 公开调用面。
+interfaces -> application -> catalog/routing/policies -> infrastructure/mysql
+adapters -> application ports（不得反向污染 domain）
 ```
 
-完成条件是目标目录真实存在、MySQL owner 清单一致、契约生成检查通过、唯一 runtime
-writer 已切换，且旧入口已删除或具备明确兼容期限和回滚方案。
+- 禁止 Model import `kokoro-iam`、`kokoro-credit`、`kokoro-payment`、`kokoro-agent` 的实现代码。
+- 禁止直接读取或写入其他 owner 的表；跨表关系只由 Root schema 的显式 FK/验证 SQL 管理。
+- 禁止把 LiteLLM provider payload、secret 或用户 prompt 进入 Model domain/persistence。
+- 禁止继续扩展旧 Platform registry 作为新的 Model 写入口。
 
-## V1 runtime dependency closure
+## 100 分证据
 
-- **MySQL** is the authoritative structured store and is accessed through Prisma's MySQL datasource and `PrismaModelRepository`.
-- **Redis** is a mandatory runtime dependency for resolve cache, short-lived health/lease state, and invalidation. It is not a durable source of truth.
-- HTTP and RPC startup perform `SELECT 1` and `PING`; `/readyz` reports both dependencies. A missing dependency is a failed readiness state, not a cache-only degraded mode.
-- Resolve uses cache-aside with the key namespace `kokoro:model:resolve:v1:{siteId}:{label}` and a bounded TTL. Write paths must invalidate the affected route namespace.
+- model catalog/binding/policy 的 owner 和唯一性约束明确。
+- routing 查询有稳定排序和 fallback 测试。
+- provider payload 与 domain 类型隔离。
+- Model 不直接访问 Credit 或 Payment 表。
+- contract consumer 与生成目录一致。
+- published revision 不可变、active route 只能指向已发布 LiteLLM revision。
+- 设计审计能区分MySQL DDL、Prisma schema 与 Repository。
+
+
+## 当前落地证据与迁移门禁
+
+当前代码证据（只证明现状，不等于目标已完成）：
+
+- `database/schema/60-model.mysql.sql`
+- `database/slices/slice-a.json`（Model 表清单与 slice 归属）
+- `contract/proto/kokoro/model/v1/model_catalog.proto`
+- `contract/consumers.yaml`（Model 与 Agent 的生成消费关系）
+- `kokoro-platform/kokoro-model`
+
+V1 完成门禁必须同时具备：
+
+- schema 与唯一 owner / runtime writer 清单一致；
+- 公开 contract、生成物和 consumer 清单一致；
+- 旧 Platform Model 写面已退出 runtime，不存在双写或旧入口回流；
+- architecture test 能阻止越界 import、跨表写入和旧入口回流；
+- unit、integration、database、contract test 覆盖本卡的核心不变量，包括稳定排序、fallback、
+  site 隔离、revision 不可变和 secretRef 不落明文；
+- 旧入口或旧写面已删除，或有明确的兼容截止版本和回滚方案。
+
+## 迁移顺序
+
+1. 以 Root MySQL migration/baseline 和 `database/slices/slice-a.json` 固化 Model
+   owner、约束和跨 slice FK。
+2. 以 `model_catalog.proto` 固化 Resolve 请求/响应，生成 TypeScript/Python consumer，
+   先接入只读解析路径。
+3. 由 MySQL migration 创建最终表，并通过 Repository transaction 写入 Provider/Definition/Revision/Policy。
+4. 所有删除走软删除或状态退役；Revision 保持不可变，Redis 在写入成功后失效。
+5. 运行 architecture、database、contract、integration 和公开入口 smoke 验证，确认唯一 runtime writer。

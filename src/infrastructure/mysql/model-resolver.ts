@@ -25,7 +25,6 @@ export class MySQLModelResolver {
     const generation = BigInt(1);
     const providerModelName = binding.gatewayModelName ?? binding.modelName;
     const digest = createHash("sha256").update(JSON.stringify({
-      requestId: request.requestId,
       bindingId: binding.id,
       providerId: binding.providerAccountId,
       providerModelName,

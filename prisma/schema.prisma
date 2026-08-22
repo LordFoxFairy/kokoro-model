@@ -69,11 +69,14 @@ model ModelLabel {
   tier             String?
   defaultBindingId String?
   status           ModelLabelStatus @default(active)
+  deletedAt        DateTime?
+  deletedBy        String?
+  deleteReason     String?
   metadata         Json?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  @@index([featureKey, status])
+  @@index([featureKey, status, deletedAt])
   @@map("model_labels")
 }
 
@@ -82,11 +85,14 @@ model SiteModelPolicy {
   siteId    String
   labelKey  String
   status    SiteModelPolicyStatus @default(visible)
+  deletedAt DateTime?
+  deletedBy String?
+  deleteReason String?
   createdAt DateTime              @default(now())
   updatedAt DateTime              @updatedAt
 
   @@unique([siteId, labelKey])
-  @@index([siteId])
+  @@index([siteId, deletedAt])
   @@map("model_site_policies")
 }
 

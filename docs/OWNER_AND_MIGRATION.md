@@ -1,29 +1,34 @@
 # Owner and migration contract
 
-## Owner
+## Final owner
 
-`@kokoro/model` is the sole runtime writer for the model bounded context:
+`kokoro-model` 是以下事实的唯一 runtime writer：
 
-- `model_provider`
-- `model_definition`
-- `model_revision`
-- `model_routing_policy`
-- `model_provider_health_state`
+```text
+model_provider
+model_definition
+model_revision
+model_label
+model_routing_policy
+model_provider_health_state
+```
 
-Agent and Credit may persist `model_revision_id` references, but never write Model tables.
+Agent、Credit、Payment 只能保存 `model_revision_id` 等引用，不能直接访问或写入 Model 表。
 
-## Migration source and target
+## Storage rules
 
-The current `prisma/schema.prisma` is a migration source only. The target MySQL schema is
-owned by the Root repository at `database/schema/60-model.sql`. Migration work must preserve
-secretRef-only storage, create immutable revisions for changed bindings, and cut over to one
-runtime writer before deleting the legacy write surface.
+- MySQL/InnoDB 保存结构化事实。
+- Redis 保存短 TTL cache、短期状态和失效路径，不保存最终业务事实。
+- Provider、Definition、Label、Routing Policy 的删除是软删除；Revision 不删除，发布后不可变，以 `retired_at` 或新策略退役。
+- 所有默认查询过滤 `deleted_at IS NULL`；后台审计可显式包含已删除记录。
+- MySQL 没有可延迟约束；published revision、active route 等跨行不变量在同一 Repository transaction 中校验。
 
-## Completion evidence
+## Canonical artifacts
 
-A migration is complete only when schema inventory, contract generation, architecture tests,
-integration tests, deployment smoke, and legacy-entry removal/compatibility expiry all agree.
+- SQL: `database/schema/60-model.mysql.sql`
+- Prisma schema/migrations: `prisma/`
+- Repository: `src/infrastructure/prisma/` and `src/infrastructure/mysql/`
+- Redis cache/invalidation: `src/infrastructure/redis/`
+- RPC source: `contract/proto/kokoro/model/v1/model_catalog.proto`
 
-## V1 storage owner
-
-`infrastructure/prisma` and `infrastructure/mysql` own MySQL access. `infrastructure/redis` owns cache and invalidation semantics. Repository changes go through `PrismaModelRepository`; interfaces and RPC contracts do not import either client directly.
+PostgreSQL baseline is historical and is not a Model runtime dependency.
