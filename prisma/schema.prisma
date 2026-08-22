@@ -9,120 +9,158 @@ generator client {
 }
 
 model ProviderAccount {
-  id            String                @id @default(cuid())
+  id            String                @id @default(cuid()) @map("provider_id")
   provider      String
-  key           String
-  label         String
-  secretRef     String
+  key           String                @map("provider_key")
+  label         String                @map("display_name")
+  secretRef     String                @map("secret_handle_ref")
   status        ProviderAccountStatus @default(active)
   priority      Int                   @default(100)
-  transportKind ModelTransportKind
-  healthStatus  ProviderHealthStatus  @default(unknown)
+  transportKind ModelTransportKind    @map("transport_kind")
+  healthStatus  ProviderHealthStatus  @default(unknown) @map("health_status")
   metadata      Json?
   bindings      ModelBinding[]
-  deletedAt     DateTime?
-  deletedBy     String?
-  deleteReason  String?
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
+  healthState   ProviderHealthState?
+  deletedAt     DateTime?             @map("deleted_at")
+  deletedBy     String?               @map("deleted_by")
+  deleteReason  String?               @map("delete_reason")
+  generation    BigInt                @default(1)
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
 
-  @@unique([provider, key])
-  @@index([status, priority])
-  @@map("model_provider_accounts")
+  @@index([status, deletedAt, priority])
+  @@unique([provider, key], name: "provider_key")
+  @@map("model_provider")
+}
+
+model ModelDefinition {
+  id           String             @id @default(cuid()) @map("model_id")
+  key          String             @map("model_key")
+  displayName  String             @map("display_name")
+  status       ModelDefinitionStatus @default(active)
+  generation   BigInt             @default(1)
+  revisions    ModelBinding[]
+  deletedAt    DateTime?          @map("deleted_at")
+  deletedBy    String?            @map("deleted_by")
+  deleteReason String?            @map("delete_reason")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  @@index([status, deletedAt])
+  @@map("model_definition")
 }
 
 model ModelBinding {
-  id                String             @id @default(cuid())
-  providerAccountId String
+  id                String                @id @default(cuid()) @map("model_revision_id")
+  modelId           String?               @map("model_id")
+  model             ModelDefinition?      @relation(fields: [modelId], references: [id])
+  revision          Int                   @default(1)
+  providerAccountId String                @map("provider_id")
   provider          String
-  modelName         String
-  displayName       String
-  featureKey        String
-  labelKeys         Json
-  inputModalities   Json
-  outputModalities  Json
-  transportKind     ModelTransportKind
-  gatewayModelName  String?
-  contextWindow     Int?
-  priority          Int                @default(100)
-  status            ModelBindingStatus @default(active)
+  modelName         String                @map("provider_model_name")
+  displayName       String                @map("revision_display_name")
+  featureKey        String                @map("feature_key")
+  labelKeys         Json                  @map("label_keys")
+  inputModalities   Json                  @map("input_modalities")
+  outputModalities  Json                  @map("output_modalities")
+  transportKind     ModelTransportKind    @map("transport")
+  gatewayModelName  String?               @map("gateway_model_name")
+  contextWindow     Int?                  @map("context_window")
+  priority          Int                   @default(100)
+  status            ModelBindingStatus    @default(active) @map("revision_status")
+  publishedAt      DateTime?             @map("published_at")
+  retiredAt        DateTime?             @map("retired_at")
   metadata          Json?
-  providerAccount   ProviderAccount    @relation(fields: [providerAccountId], references: [id])
-  deletedAt         DateTime?
-  deletedBy         String?
-  deleteReason      String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  providerAccount   ProviderAccount       @relation(fields: [providerAccountId], references: [id])
+  deletedAt         DateTime?             @map("deleted_at")
+  deletedBy         String?               @map("deleted_by")
+  deleteReason      String?               @map("delete_reason")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
 
   @@unique([providerAccountId, modelName, transportKind])
   @@index([featureKey, status, deletedAt, priority])
   @@index([provider, modelName])
-  @@map("model_bindings")
+  @@map("model_revision")
 }
 
 model ModelLabel {
-  id               String           @id @default(cuid())
-  key              String           @unique
-  displayName      String
+  id               String           @id @default(cuid()) @map("label_id")
+  key              String           @map("label_key")
+  displayName      String           @map("display_name")
   description      String?
-  featureKey       String
+  featureKey       String           @map("feature_key")
   tier             String?
-  defaultBindingId String?
+  defaultBindingId String?          @map("default_revision_id")
   status           ModelLabelStatus @default(active)
-  deletedAt        DateTime?
-  deletedBy        String?
-  deleteReason     String?
+  deletedAt        DateTime?       @map("deleted_at")
+  deletedBy        String?          @map("deleted_by")
+  deleteReason     String?          @map("delete_reason")
   metadata         Json?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
 
+  @@unique([key])
   @@index([featureKey, status, deletedAt])
-  @@map("model_labels")
+  @@map("model_label")
 }
 
 model SiteModelPolicy {
-  id        String                @id @default(cuid())
-  siteId    String
-  labelKey  String
-  status    SiteModelPolicyStatus @default(visible)
-  deletedAt DateTime?
-  deletedBy String?
-  deleteReason String?
-  createdAt DateTime              @default(now())
-  updatedAt DateTime              @updatedAt
+  id              String                @id @default(cuid()) @map("routing_policy_id")
+  siteId          String                @map("site_id")
+  labelKey        String                @map("label_key")
+  modelRevisionId String?               @map("model_revision_id")
+  priority        Int                   @default(100)
+  generation      BigInt                @default(1)
+  status          SiteModelPolicyStatus @default(visible)
+  deletedAt       DateTime?             @map("deleted_at")
+  deletedBy       String?               @map("deleted_by")
+  deleteReason    String?               @map("delete_reason")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
 
   @@unique([siteId, labelKey])
-  @@index([siteId, deletedAt])
-  @@map("model_site_policies")
+  @@index([siteId, labelKey, status, deletedAt, priority])
+  @@map("model_routing_policy")
 }
 
+model ProviderHealthState {
+  providerId  String               @id @map("provider_id")
+  status      ProviderHealthStatus @default(unknown)
+  generation  BigInt               @default(1)
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  provider    ProviderAccount      @relation(fields: [providerId], references: [id])
+
+  @@map("model_provider_health_state")
+}
+
+enum ModelDefinitionStatus {
+  active
+  disabled
+}
 enum SiteModelPolicyStatus {
   visible
   hidden
 }
-
 enum ProviderAccountStatus {
   active
   disabled
 }
-
 enum ProviderHealthStatus {
   unknown
   healthy
   degraded
   down
 }
-
 enum ModelBindingStatus {
   active
   disabled
 }
-
 enum ModelLabelStatus {
   active
   disabled
 }
-
 enum ModelTransportKind {
   litellm
   direct

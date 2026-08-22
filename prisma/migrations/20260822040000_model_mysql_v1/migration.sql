@@ -1,6 +1,3 @@
--- Canonical standalone migration SQL generated from prisma/schema.prisma.
--- Root cross-slice site FK is applied by the Root MySQL baseline.
-
 -- CreateTable
 CREATE TABLE `model_provider` (
     `provider_id` VARCHAR(191) NOT NULL,

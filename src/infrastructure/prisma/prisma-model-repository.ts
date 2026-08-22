@@ -450,10 +450,10 @@ function mapProviderAccount(account: {
   provider: string;
   key: string;
   label: string;
-  secretRef: string;
+  secretRef: string | null;
   status: "active" | "disabled";
   priority: number;
-  transportKind: "litellm" | "direct" | "internal";
+  transportKind: "litellm" | "direct" | "internal" | "local";
   healthStatus: "unknown" | "healthy" | "degraded" | "down";
   deletedAt: Date | null;
   deletedBy: string | null;
@@ -466,10 +466,10 @@ function mapProviderAccount(account: {
     provider: account.provider,
     key: account.key,
     label: account.label,
-    secretRef: account.secretRef,
+    secretRef: account.secretRef ?? "",
     status: account.status,
     priority: account.priority,
-    transportKind: account.transportKind,
+    transportKind: mapTransport(account.transportKind),
     healthStatus: account.healthStatus,
     deletedAt: account.deletedAt,
     deletedBy: account.deletedBy,
@@ -521,7 +521,7 @@ function mapModelBinding(binding: {
   labelKeys: Prisma.JsonValue;
   inputModalities: Prisma.JsonValue;
   outputModalities: Prisma.JsonValue;
-  transportKind: "litellm" | "direct" | "internal";
+  transportKind: "litellm" | "direct" | "internal" | "local";
   gatewayModelName: string | null;
   contextWindow: number | null;
   priority: number;
@@ -542,7 +542,7 @@ function mapModelBinding(binding: {
     labelKeys: stringArray(binding.labelKeys),
     inputModalities: stringArray(binding.inputModalities),
     outputModalities: stringArray(binding.outputModalities),
-    transportKind: binding.transportKind,
+    transportKind: mapTransport(binding.transportKind),
     gatewayModelName: binding.gatewayModelName,
     contextWindow: binding.contextWindow,
     priority: binding.priority,
@@ -557,4 +557,8 @@ function mapModelBinding(binding: {
 
 function stringArray(value: Prisma.JsonValue): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function mapTransport(value: "litellm" | "direct" | "internal" | "local"): "litellm" | "direct" | "internal" {
+  return value === "local" ? "internal" : value;
 }

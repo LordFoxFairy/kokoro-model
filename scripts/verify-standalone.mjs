@@ -33,4 +33,11 @@ for (const script of ["dev", "start", "contract:check", "db:migrate", "smoke:mys
 }
 if (!readFileSync(".env.example", "utf8").includes("mysql://")) throw new Error("standalone env must point at MySQL");
 if (!readFileSync(".env.example", "utf8").includes("KOKORO_REDIS_URL")) throw new Error("standalone env must include Redis");
+const prismaSchema = readFileSync("prisma/schema.prisma", "utf8");
+for (const table of ["model_provider", "model_definition", "model_revision", "model_label", "model_routing_policy", "model_provider_health_state"]) {
+  if (!prismaSchema.includes(`@@map(\"${table}\")`)) throw new Error(`Prisma schema missing canonical table: ${table}`);
+}
+for (const oldTable of ["model_provider_accounts", "model_bindings", "model_labels", "model_site_policies"]) {
+  if (prismaSchema.includes(oldTable)) throw new Error(`legacy table remains in Prisma schema: ${oldTable}`);
+}
 console.log(`standalone artifacts verified: ${required.length}`);
