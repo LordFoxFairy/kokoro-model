@@ -21,8 +21,15 @@ export class MySQLModelResolver {
     const binding = bindings[0];
     if (!binding) return null;
 
+    const policy = request.tenantId
+      ? await this.prisma.tenantModelPolicy.findFirst({
+          where: { tenantId: request.tenantId, labelKey: request.label, status: "visible", deletedAt: null },
+          orderBy: { updatedAt: "desc" },
+        })
+      : null;
+
     const transport = binding.transportKind === "litellm" ? ModelTransport.LITELLM : ModelTransport.UNSPECIFIED;
-    const generation = BigInt(1);
+    const generation = policy?.generation ?? BigInt(1);
     const providerModelName = binding.gatewayModelName ?? binding.modelName;
     const digest = createHash("sha256").update(JSON.stringify({
       bindingId: binding.id,
@@ -38,7 +45,7 @@ export class MySQLModelResolver {
       providerId: binding.providerAccountId,
       providerModelName,
       transport,
-      routingPolicyId: `legacy-binding:${binding.id}`,
+      routingPolicyId: policy?.id ?? `default-label:${request.label}`,
       routingPolicyGeneration: generation,
       digest,
     };

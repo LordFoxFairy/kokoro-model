@@ -45,7 +45,7 @@ export function registerModelAdminRoutes(app: FastifyInstance, repository: Model
       if (error instanceof ZodError) {
         return sendZodError(reply, error);
       }
-      return sendError(reply, 500, "model.site_policy_upsert_failed", "站点模型策略写入失败");
+      return sendError(reply, 500, "model.tenant_policy_upsert_failed", "租户模型策略写入失败");
     }
   });
 

@@ -13,7 +13,7 @@ L0/L1。目录和解析规则为主；只有 routing policy 形成复杂状态�
 ## 拥有 / 不拥有
 
 拥有 provider、model definition/revision、tenant routing policy、provider health projection，以及
-解析请求所需的稳定排序和 fallback 规则。`tenant_id` 只作为 IAM/System 提供的上下文标识，Model
+解析请求所需的稳定排序和单结果选择规则；跨 provider fallback 由后续执行编排契约决定。`tenant_id` 只作为 IAM/System 提供的上下文标识，Model
 不拥有 Tenant 的生命周期。
 
 不拥有 provider 网关实现、用户余额、套餐权益、Agent 执行、原始大 payload，也不拥有 IAM
@@ -54,10 +54,10 @@ src/
 ## 关键边界
 
 - LiteLLM 是 `adapters/` 的 provider/gateway 实现，不是 Model domain。
-- `ResolveModel` 只返回已发布、可用的候选和 routing generation/digest，不决定最终扣费，
+- `ResolveModel` 只返回一个已发布、可用的解析结果和 routing generation/digest，不决定最终扣费，
   不启动 Agent，也不返回 provider secret。
-- 解析排序必须由 `(tenant_id, label, priority, stable model revision key)` 决定；fallback
-  只能在同一请求快照内进行，不能跨请求隐式改变结果。
+- 解析排序必须由 `(tenant_id, label, priority, stable model revision key)` 决定；V1 取第一条，
+  不能跨请求隐式改变结果。
 - `model_revision` 发布后不可变；替换 provider/model 参数必须创建新 Revision，并由策略
   显式切换。
 - Model 对 IAM 只消费 受信 tenant context/authorization 输入；不直接 import IAM domain，也不
@@ -87,7 +87,7 @@ adapters -> application ports（不得反向污染 domain）
 ## 100 分证据
 
 - model catalog/binding/policy 的 owner 和唯一性约束明确。
-- routing 查询有稳定排序和 fallback 测试。
+- routing 查询有稳定排序和单结果选择测试。
 - provider payload 与 domain 类型隔离。
 - Model 不直接访问 Credit 或 Payment 表。
 - contract consumer 与生成目录一致。
@@ -111,7 +111,7 @@ V1 完成门禁必须同时具备：
 - 公开 contract、生成物和 consumer 清单一致；
 - 旧 Platform Model 写面已退出 runtime，不存在双写或旧入口回流；
 - architecture test 能阻止越界 import、跨表写入和旧入口回流；
-- unit、integration、database、contract test 覆盖本卡的核心不变量，包括稳定排序、fallback、
+- unit、integration、database、contract test 覆盖本卡的核心不变量，包括稳定排序、单结果选择、
   tenant 隔离、revision 不可变和 secretRef 不落明文；
 - 旧入口或旧写面已删除，或有明确的兼容截止版本和回滚方案。
 

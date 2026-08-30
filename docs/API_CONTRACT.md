@@ -2,6 +2,18 @@
 
 状态：V1 runtime contract，2026-08-22
 
+## 0. 设计目的
+
+Model 是 Kokoro 的**模型目录与路由决策服务**：把产品能力请求中的 `label`，在受信
+`tenant_id` 上下文中解析成当前可执行的 `model_revision`、Provider、transport 和路由版本。
+它让 Agent/Session 不需要知道 Provider 目录、LiteLLM 别名、健康状态或租户可见性规则，
+同时让 Billing/Credit 与模型选择解耦。Model 不执行模型调用，也不承担任务编排；Manus API
+中的任务异步生命周期、Project、Webhook 和 Structured Output 是可借鉴的契约思想，不属于
+Model 的 owner 边界。
+
+本设计吸收 Manus API 的四点：显式版本、稳定 opaque ID、统一错误 envelope、异步/重试边界
+清晰；不复制其 `/v2/task.create` operation 命名，也不把 Agent Task 资源塞进 Model。
+
 ## 1. 边界
 
 `kokoro-model` 对外提供两类入口：
@@ -74,7 +86,8 @@ Model 只返回可路由的模型元数据，不执行 provider 调用、不返�
 }
 ```
 
-`tenantId` 必须是 UUID；受信入口构建的租户上下文不能被浏览器字段覆盖。
+本地 target HTTP 适配器要求 `tenantId` 为 UUID；生产调用必须由 BFF/内部受信入口构建租户
+上下文，浏览器字段不能作为授权依据。跨服务正式调用优先使用下方 RPC。
 
 成功响应为 `{ "data": ResolveModelResponse }`；无匹配路由返回 HTTP `404` 和：
 
@@ -113,6 +126,8 @@ Model 只返回可路由的模型元数据，不执行 provider 调用、不返�
 - 写入事务提交成功后失效 Redis route cache；Redis 不是最终事实源。
 - `tenant_id` 由 IAM/System 提供，Model 不拥有 Tenant 表。
 - 关联对象不存在、已删除或状态不允许时，由 Application/Repository 返回稳定业务错误码。
+- Model schema 不建立外键；业务关联由事务内 Application/Repository 校验，读取关联使用参数化 JOIN。
+- V1 没有 visible tenant policy 时使用全局 label 默认路由；存在 hidden policy 时不返回该 label。
 
 ## 6. 生成与验证
 
