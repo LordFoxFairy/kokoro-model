@@ -144,13 +144,11 @@ pnpm verify:release
 
 ## 7. 初始模型目录
 
-`database/70-model.init.mysql.sql` 是现有 LiteLLM 配置的幂等 materialization：
+`database/70-model.init.mysql.sql` 是 OpenRouter 公共 Models API 的幂等快照 materialization，当前包含 395 个标准模型 ID，例如
+`openai/gpt-4o-mini`、`anthropic/claude-sonnet-4.6`、`google/gemini-2.5-pro`、`deepseek/deepseek-chat` 和 `qwen/qwen3-30b-a3b`。
+完整名称和 metadata 以 SQL 快照中的 `model_definition`/`model_revision` 为准，不再人为拼接 `kokoro-openai-*` 这类非标准 ID。
 
-- `claude-code`：平台默认稳定门面，生产可用；
-- `kokoro-openai-gpt-4o-mini`：OpenAI 示例 deployment；
-- `kokoro-anthropic-claude-sonnet`：Anthropic 示例 deployment；
-- `kokoro-openai-compatible`：可注入 base URL 的兼容 endpoint；
-- `kokoro-dev-mock`：本地 smoke 记录，默认 disabled。
+OpenRouter 快照的 revision/label 默认 disabled；部署同名 LiteLLM route 后再显式启用。`claude-code` 与 `kokoro-dev-mock` 是 Kokoro 本地 facade/mock，单独保留。
 
 SQL 只写 `env:*` secret reference，不写 key；tenant policy 不在初始化脚本中生成，必须由 IAM/System
 提供真实 `tenant_id` 后通过管理流程写入。

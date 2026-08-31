@@ -40,6 +40,7 @@ model ModelDefinition {
   displayName  String             @map("display_name")
   status       ModelDefinitionStatus @default(active)
   generation   BigInt             @default(1)
+  metadata     Json?
   revisions    ModelBinding[]
   deletedAt    DateTime?          @map("deleted_at")
   deletedBy    String?            @map("deleted_by")

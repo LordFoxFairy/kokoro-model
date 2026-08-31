@@ -29,6 +29,7 @@ CREATE TABLE `model_definition` (
     `display_name` VARCHAR(191) NOT NULL,
     `status` ENUM('active', 'disabled') NOT NULL DEFAULT 'active',
     `generation` BIGINT NOT NULL DEFAULT 1,
+    `metadata` JSON NULL,
     `deleted_at` DATETIME(3) NULL,
     `deleted_by` VARCHAR(191) NULL,
     `delete_reason` VARCHAR(191) NULL,
