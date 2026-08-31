@@ -36,6 +36,7 @@ CREATE TABLE `model_definition` (
     `updated_at` DATETIME(3) NOT NULL,
 
     INDEX `model_definition_status_deleted_at_idx`(`status`, `deleted_at`),
+    UNIQUE INDEX `model_definition_model_key_key`(`model_key`),
     PRIMARY KEY (`model_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

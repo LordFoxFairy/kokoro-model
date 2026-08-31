@@ -141,3 +141,16 @@ pnpm verify:release
 ```
 
 禁止手工修改 `src/generated/`；生成物、contract provenance 和 consumer 清单必须一致。
+
+## 7. 初始模型目录
+
+`database/70-model.init.mysql.sql` 是现有 LiteLLM 配置的幂等 materialization：
+
+- `claude-code`：平台默认稳定门面，生产可用；
+- `kokoro-openai-gpt-4o-mini`：OpenAI 示例 deployment；
+- `kokoro-anthropic-claude-sonnet`：Anthropic 示例 deployment；
+- `kokoro-openai-compatible`：可注入 base URL 的兼容 endpoint；
+- `kokoro-dev-mock`：本地 smoke 记录，默认 disabled。
+
+SQL 只写 `env:*` secret reference，不写 key；tenant policy 不在初始化脚本中生成，必须由 IAM/System
+提供真实 `tenant_id` 后通过管理流程写入。

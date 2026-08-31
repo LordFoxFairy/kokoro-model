@@ -6,6 +6,10 @@
 
 MySQL 是结构化业务事实源，Redis 是必需运行时依赖：用于 resolve cache、短时运行状态和失效通知。Redis 不是业务最终真源。权威 SQL 为根仓库的 `database/schema/60-model.mysql.sql`。
 
+已有 LiteLLM 配置的可重复初始数据见 `database/70-model.init.mysql.sql`（根仓镜像为
+`database/schema/70-model.init.mysql.sql`）。它包含完整的 model/provider/revision/label
+display name、description、gateway alias 和 secret reference；不包含任何真实凭据，也不预置 tenant policy。
+
 Owned tables:
 
 ```text
@@ -42,6 +46,9 @@ docker compose up --build
 - MySQL: `53306`
 - Redis: `56379`
 - `/readyz` 必须同时通过 MySQL `SELECT 1` 和 Redis `PING`
+
+初始化目录：先执行 migration，再执行 `database/70-model.init.mysql.sql`。其中
+`kokoro-dev-mock` 默认 `disabled`，只保留为本地配置记录，避免进入生产运行时。
 
 ## Architecture
 

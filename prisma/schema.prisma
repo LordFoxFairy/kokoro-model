@@ -48,6 +48,7 @@ model ModelDefinition {
   updatedAt    DateTime           @updatedAt @map("updated_at")
 
   @@index([status, deletedAt])
+  @@unique([key], name: "model_key")
   @@map("model_definition")
 }
 
