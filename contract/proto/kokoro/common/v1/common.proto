@@ -52,6 +52,18 @@ message PrincipalContext {
   repeated string permission_keys = 4;
 }
 
+message IdentityRef {
+  string kind = 1;
+  string opaque_ref = 2;
+}
+
+message ExecutionIdentity {
+  string tenant_ref = 1;
+  kokoro.common.v1.IdentityRef actor = 2;
+  kokoro.common.v1.IdentityRef subject = 3;
+  string identity_assertion_ref = 4;
+}
+
 message CommandIdentity {
   string command_id = 1;
   string request_digest = 2;
