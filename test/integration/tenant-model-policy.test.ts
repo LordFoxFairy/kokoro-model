@@ -29,6 +29,7 @@ async function seedChatBindings(): Promise<void> {
       outputModalities: ["text"],
       transportKind: "litellm",
       status: "active",
+      publishedAt: new Date(),
     },
   });
 
@@ -44,6 +45,7 @@ async function seedChatBindings(): Promise<void> {
       outputModalities: ["text"],
       transportKind: "litellm",
       status: "active",
+      publishedAt: new Date(),
     },
   });
 }
@@ -108,7 +110,7 @@ describe("site model policy API", () => {
     const siteA = await app.inject({
       method: "GET",
       url: "/model-bindings/resolve?featureKey=chat",
-      headers: { "x-kokoro-site-id": "site-a" },
+      headers: { "x-kokoro-tenant-id": "site-a" },
     });
     expect(siteA.json().data.map((row: { modelName: string }) => row.modelName)).toEqual([
       "gpt-4o-mini",
@@ -118,7 +120,7 @@ describe("site model policy API", () => {
     const siteB = await app.inject({
       method: "GET",
       url: "/model-bindings/resolve?featureKey=chat",
-      headers: { "x-kokoro-site-id": "site-b" },
+      headers: { "x-kokoro-tenant-id": "site-b" },
     });
     expect(siteB.json().data.map((row: { modelName: string }) => row.modelName).sort()).toEqual([
       "gpt-4o",
@@ -148,7 +150,7 @@ describe("site model policy API", () => {
     const siteA = await app.inject({
       method: "GET",
       url: "/model-bindings/resolve?featureKey=chat",
-      headers: { "x-kokoro-site-id": "site-a" },
+      headers: { "x-kokoro-tenant-id": "site-a" },
     });
     expect(siteA.json().data.map((row: { modelName: string }) => row.modelName).sort()).toEqual([
       "gpt-4o",

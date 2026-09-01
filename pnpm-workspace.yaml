@@ -1,5 +1,5 @@
 packages:
-  - "packages/platform-kit"
+  - "packages/service-kit"
 allowBuilds:
   "@bufbuild/buf": true
   "@prisma/client": true

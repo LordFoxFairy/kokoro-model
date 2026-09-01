@@ -1,6 +1,6 @@
 # kokoro-model 设计卡
 
-状态：V1 目标设计与 runtime 基线已确定；MySQL DDL、Repository、Redis readiness 和 RPC contract 统一。
+状态：V1 目标设计与 runtime 基线已确定；PostgreSQL DDL、Repository、Redis readiness 和 RPC contract 统一。
 
 ## 定位
 
@@ -45,7 +45,7 @@ src/
 ├── health/                         provider health projection/worker
 ├── adapters/                       LiteLLM/provider adapter；不承载领域规则
 ├── interfaces/{http,rpc,admin}/
-├── infrastructure/mysql/
+├── infrastructure/postgresql/
 ├── generated/
 ├── config/
 └── main.ts
@@ -75,11 +75,11 @@ src/
 ## 依赖方向与禁止项
 
 ```text
-interfaces -> application -> catalog/routing/policies -> infrastructure/mysql
+interfaces -> application -> catalog/routing/policies -> infrastructure/postgresql
 adapters -> application ports（不得反向污染 domain）
 ```
 
-- 禁止 Model import `kokoro-iam`、`kokoro-credit`、`kokoro-payment`、`kokoro-agent` 的实现代码。
+- 禁止 Model import `kokoro-iam`、`kokoro-billing`、`kokoro-agent` 的实现代码。
 - 禁止直接读取或写入其他 owner 的表；跨表关系由 Application/Repository 校验，读取时使用参数化 SQL JOIN；Model schema 不建立外键。
 - 禁止把 LiteLLM provider payload、secret 或用户 prompt 进入 Model domain/persistence。
 - 禁止继续扩展旧 Platform registry 作为新的 Model 写入口。
@@ -92,18 +92,18 @@ adapters -> application ports（不得反向污染 domain）
 - Model 不直接访问 Credit 或 Payment 表。
 - contract consumer 与生成目录一致。
 - published revision 不可变、active route 只能指向已发布 LiteLLM revision。
-- 设计审计能区分MySQL DDL、Prisma schema 与 Repository。
+- 设计审计能区分PostgreSQL DDL、Prisma schema 与 Repository。
 
 
 ## 当前落地证据与迁移门禁
 
 当前代码证据（只证明现状，不等于目标已完成）：
 
-- `database/schema/60-model.mysql.sql`
+- `database/60-model.postgresql.sql`
 - `database/slices/slice-a.json`（Model 表清单与 slice 归属）
 - `contract/proto/kokoro/model/v1/model_catalog.proto`
 - `contract/consumers.yaml`（Model 与 Agent 的生成消费关系）
-- `kokoro-platform/kokoro-model`
+- `LordFoxFairy/kokoro-model` 当前独立仓库实现
 
 V1 完成门禁必须同时具备：
 
@@ -117,10 +117,10 @@ V1 完成门禁必须同时具备：
 
 ## 迁移顺序
 
-1. 以 Root MySQL migration/baseline 和 `database/slices/slice-a.json` 固化 Model
+1. 以 Root PostgreSQL migration/baseline 和 `database/slices/slice-a.json` 固化 Model
    owner、约束和跨 slice FK。
 2. 以 `model_catalog.proto` 固化 Resolve 请求/响应，生成 TypeScript/Python consumer，
    先接入只读解析路径。
-3. 由 MySQL migration 创建最终表，并通过 Repository transaction 写入 Provider/Definition/Revision/Policy。
+3. 由 PostgreSQL migration 创建最终表，并通过 Repository transaction 写入 Provider/Definition/Revision/Policy。
 4. 所有删除走软删除或状态退役；Revision 保持不可变，Redis 在写入成功后失效。
 5. 运行 architecture、database、contract、integration 和公开入口 smoke 验证，确认唯一 runtime writer。

@@ -1,4 +1,4 @@
-import { registerAdminManifestRoute, sendData, sendError, sendZodError } from "@kokoro/platform-kit";
+import { jsonSchema, registerAdminManifestRoute, sendData, sendError, sendZodError } from "@kokoro/service-kit";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { ZodError } from "zod";
 import type { ModelBindingStatus, ProviderAccountStatus } from "../../domain/model.js";
@@ -9,8 +9,13 @@ import {
   deleteRequestSchema,
   modelBindingParamsSchema,
   providerAccountParamsSchema,
+  listTenantModelPoliciesQuerySchema,
+  listModelPageQuerySchema,
+  providerHealthRequestSchema,
   upsertTenantModelPolicyRequestSchema,
 } from "./schemas.js";
+import { pageWindow } from "../../application/pagination.js";
+import { sendPagedData } from "./routes.js";
 
 interface IdParams {
   id: string;
@@ -19,25 +24,58 @@ interface IdParams {
 export function registerModelAdminRoutes(app: FastifyInstance, repository: ModelRepository): void {
   registerAdminManifestRoute(app, modelAdminManifest);
 
-  app.get("/admin/models/provider-accounts", async (_request, reply) =>
-    sendData(reply, await repository.listProviderAccounts({ includeDeleted: true })),
+  app.get<{ Querystring: { limit?: number; cursor?: string } }>("/admin/models/provider-accounts", { schema: { querystring: jsonSchema(listModelPageQuerySchema) } }, async (request, reply) => {
+    try {
+      const query = listModelPageQuerySchema.parse(request.query);
+      const page = pageWindow("admin-provider-accounts", await repository.listProviderAccounts({ includeDeleted: true }), query);
+      return sendPagedData(reply, page.items, page.nextCursor);
+    } catch (error) {
+      return handleAdminModelError(error, reply, "model.provider_account_list_failed");
+    }
+  },
   );
 
-  app.get("/admin/models/bindings", async (_request, reply) =>
-    sendData(reply, await repository.listAllModelBindings({ includeDeleted: true })),
+  app.get<{ Querystring: { limit?: number; cursor?: string } }>("/admin/models/bindings", { schema: { querystring: jsonSchema(listModelPageQuerySchema) } }, async (request, reply) => {
+    try {
+      const query = listModelPageQuerySchema.parse(request.query);
+      const page = pageWindow("admin-model-bindings", await repository.listAllModelBindings({ includeDeleted: true }), query);
+      return sendPagedData(reply, page.items, page.nextCursor);
+    } catch (error) {
+      return handleAdminModelError(error, reply, "model.binding_list_failed");
+    }
+  },
   );
 
-  app.get("/admin/models/labels", async (_request, reply) =>
-    sendData(reply, await repository.listModelLabels()),
+  app.get<{ Querystring: { limit?: number; cursor?: string } }>("/admin/models/labels", { schema: { querystring: jsonSchema(listModelPageQuerySchema) } }, async (request, reply) => {
+    try {
+      const query = listModelPageQuerySchema.parse(request.query);
+      const page = pageWindow("admin-model-labels", await repository.listModelLabels(), query);
+      return sendPagedData(reply, page.items, page.nextCursor);
+    } catch (error) {
+      return handleAdminModelError(error, reply, "model.label_list_failed");
+    }
+  },
   );
 
-  app.get<{ Querystring: { tenantId?: string } }>(
+  app.get<{ Querystring: { tenantId?: string; limit?: number; cursor?: string } }>(
     "/admin/models/tenant-policies",
-    async (request, reply) =>
-      sendData(reply, await repository.listTenantModelPolicies(request.query.tenantId)),
+    { schema: { querystring: jsonSchema(listTenantModelPoliciesQuerySchema) } },
+    async (request, reply) => {
+      try {
+        const query = listTenantModelPoliciesQuerySchema.parse(request.query);
+        const page = pageWindow(
+          `admin-tenant-policies:${query.tenantId ?? "*"}`,
+          await repository.listTenantModelPolicies(query.tenantId),
+          query,
+        );
+        return sendPagedData(reply, page.items, page.nextCursor);
+      } catch (error) {
+        return handleAdminModelError(error, reply, "model.tenant_policy_list_failed");
+      }
+    },
   );
 
-  app.post("/admin/models/tenant-policies", async (request, reply) => {
+  app.post("/admin/models/tenant-policies", { schema: { body: jsonSchema(upsertTenantModelPolicyRequestSchema) } }, async (request, reply) => {
     try {
       const input = upsertTenantModelPolicyRequestSchema.parse(request.body);
       return sendData(reply, await repository.upsertTenantModelPolicy(input));
@@ -51,6 +89,16 @@ export function registerModelAdminRoutes(app: FastifyInstance, repository: Model
 
   registerProviderAccountStatusRoute(app, repository, "disable", "disabled");
   registerProviderAccountStatusRoute(app, repository, "enable", "active");
+  app.post<{ Params: IdParams }>("/admin/models/provider-accounts/:id/health", { schema: { params: jsonSchema(providerAccountParamsSchema), body: jsonSchema(providerHealthRequestSchema) } }, async (request, reply) => {
+    try {
+      const input = providerHealthRequestSchema.parse(request.body);
+      const account = await repository.setProviderHealthStatus(request.params.id, input.status);
+      if (account === null) return sendProviderAccountNotFound(reply);
+      return sendData(reply, account);
+    } catch (error) {
+      return handleAdminModelError(error, reply, "model.provider_health_update_failed");
+    }
+  });
   registerProviderAccountLifecycleRoutes(app, repository);
   registerModelBindingStatusRoute(app, repository, "disable", "disabled");
   registerModelBindingStatusRoute(app, repository, "enable", "active");
@@ -153,6 +201,9 @@ function handleAdminModelError(error: unknown, reply: FastifyReply, fallbackCode
   }
   if (isModelLifecycleError(error)) {
     return sendError(reply, error.statusCode, error.code, error.message);
+  }
+  if (error instanceof Error && (error.message === "model.invalid_cursor" || error.message === "model.invalid_page")) {
+    return sendError(reply, 400, error.message, "分页参数无效");
   }
   return sendError(reply, 500, fallbackCode, "模型管理操作失败");
 }

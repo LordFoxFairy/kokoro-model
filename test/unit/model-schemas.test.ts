@@ -6,6 +6,8 @@ import {
   ensureProviderAccountRequestSchema,
   listModelBindingsQuerySchema,
   listModelLabelsQuerySchema,
+  listModelPageQuerySchema,
+  bffModelCatalogQuerySchema,
   modelBindingParamsSchema,
   modelTransportKindSchema,
   providerAccountParamsSchema,
@@ -291,5 +293,17 @@ describe("listModelLabelsQuerySchema", () => {
   it("rejects empty featureKey and unknown fields", () => {
     expect(() => listModelLabelsQuerySchema.parse({ featureKey: "" })).toThrow();
     expect(() => listModelLabelsQuerySchema.parse({ junk: 1 })).toThrow();
+  });
+});
+
+describe("model page and BFF query schemas", () => {
+  it("accepts bounded cursor pagination without changing the empty-query shape", () => {
+    expect(listModelPageQuerySchema.parse({ limit: "2", cursor: "opaque" })).toEqual({ limit: 2, cursor: "opaque" });
+    expect(listModelLabelsQuerySchema.parse({})).toEqual({});
+  });
+
+  it("rejects invalid page bounds and unknown BFF query fields", () => {
+    expect(() => bffModelCatalogQuerySchema.parse({ limit: 101 })).toThrow();
+    expect(() => bffModelCatalogQuerySchema.parse({ tenantId: "body-is-not-authoritative" })).toThrow();
   });
 });

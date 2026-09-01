@@ -15,7 +15,8 @@
   },
   "scripts": {
     "dev": "tsx src/interfaces/http/target-main.ts",
-    "start": "tsx src/interfaces/http/target-main.ts",
+    "start": "node dist/src/interfaces/http/target-main.js",
+    "start:rpc": "node dist/src/interfaces/rpc/main.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:dev": "prisma migrate dev",
@@ -25,6 +26,7 @@
     "test:integration": "vitest run test/integration --no-file-parallelism",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "build": "tsc -p tsconfig.build.json",
     "coverage": "vitest run --coverage --no-file-parallelism",
     "postinstall": "prisma generate",
     "contract:lint": "buf lint contract",
@@ -37,29 +39,31 @@
     "verify:standalone": "node scripts/verify-standalone.mjs && pnpm verify:contract-provenance",
     "verify:contract-provenance": "node scripts/verify-contract-provenance.mjs",
     "test:architecture": "vitest run test/architecture",
-    "verify:release": "pnpm verify:standalone && pnpm contract:check && pnpm typecheck && pnpm test:architecture && pnpm test",
-    "smoke:mysql": "tsx scripts/smoke-mysql.ts",
+    "verify:release": "pnpm verify:standalone && pnpm contract:check && pnpm db:generate && pnpm typecheck && pnpm test:architecture && pnpm test",
+    "smoke:postgresql": "tsx scripts/smoke-postgresql.ts",
     "smoke:redis": "tsx scripts/smoke-redis.ts",
-    "smoke:mysql-redis": "pnpm smoke:mysql && pnpm smoke:redis"
+    "smoke:postgresql-redis": "pnpm smoke:postgresql && pnpm smoke:redis"
   },
   "dependencies": {
     "@connectrpc/connect": "2.0.0",
     "@connectrpc/connect-node": "2.0.0",
-    "@kokoro/platform-kit": "workspace:*",
+    "@kokoro/service-kit": "workspace:*",
     "@prisma/client": "^6.19.3",
     "fastify": "^5.6.2",
     "ioredis": "^5.11.1",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "@bufbuild/protobuf": "2.14.0"
   },
   "devDependencies": {
     "@bufbuild/buf": "1.72.0",
-    "@bufbuild/protobuf": "2.14.0",
     "@bufbuild/protoc-gen-es": "2.14.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^22.19.1",
+    "eslint": "^9.39.1",
     "prisma": "^6.19.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0",
     "vitest": "^2.1.9"
   }
 }

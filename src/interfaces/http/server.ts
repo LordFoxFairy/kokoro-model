@@ -1,10 +1,11 @@
 import {
   declareRouteAccess,
+  registerErrorHandler,
   registerOpenApi,
   registerRouteAccess,
   type RouteAccessConfig,
   type ServiceCaller,
-} from "@kokoro/platform-kit";
+} from "@kokoro/service-kit";
 import type { PrismaClient } from "../../../generated/prisma/index.js";
 import Fastify from "fastify";
 import { ModelService } from "../../application/model-service.js";
@@ -23,7 +24,7 @@ export interface CreateModelServerOptions {
 }
 
 // model 所需 caller 凭据：session(model-bindings/resolve 可用性权威) + admin(网关) 入站。model 无出站。
-const MODEL_REQUIRED_CALLERS: ServiceCaller[] = ["session", "admin"];
+const MODEL_REQUIRED_CALLERS: ServiceCaller[] = ["session", "admin", "web-bff"];
 
 export function createModelServer(options: CreateModelServerOptions = {}) {
   const app = Fastify({
@@ -42,7 +43,9 @@ export function createModelServer(options: CreateModelServerOptions = {}) {
   declareRouteAccess(app, "/provider-accounts", "runtime-internal");
   declareRouteAccess(app, "/model-bindings", "runtime-internal");
   declareRouteAccess(app, "/model-labels", "runtime-internal");
+  declareRouteAccess(app, "/bff/model-catalog", "web-bff");
   declareRouteAccess(app, "/docs", "runtime-internal");
+  registerErrorHandler(app);
 
   const prisma = options.prisma ?? createPrismaClient();
   const baseRepository = new PrismaModelRepository(prisma);

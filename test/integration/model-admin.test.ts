@@ -59,6 +59,7 @@ describe("model admin API", () => {
         outputModalities: ["audio"],
         transportKind: "direct",
         status: "active",
+        publishedAt: new Date(),
       },
     });
 
@@ -107,6 +108,7 @@ describe("model admin API", () => {
         outputModalities: ["text"],
         transportKind: "litellm",
         status: "active",
+        publishedAt: new Date(),
       },
     });
 
@@ -171,6 +173,7 @@ describe("model admin API", () => {
         outputModalities: ["text"],
         transportKind: "litellm",
         status: "active",
+        publishedAt: new Date(),
       },
     });
 
@@ -245,6 +248,7 @@ describe("model admin API", () => {
         transportKind: "litellm",
         gatewayModelName: "openai/gpt-4o",
         status: "active",
+        publishedAt: new Date(),
         deletedAt: new Date(),
         deletedBy: "operator-1",
         deleteReason: "retired",
@@ -286,6 +290,7 @@ describe("model admin API", () => {
         transportKind: "litellm",
         gatewayModelName: "openai/gpt-4o",
         status: "active",
+        publishedAt: new Date(),
       },
     });
 

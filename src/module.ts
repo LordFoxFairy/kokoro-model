@@ -7,7 +7,7 @@ export const modelPlatformModule = {
   kind: "model-registry",
   envFile: "kokoro-model/.env.example",
   storage: {
-    primary: "mysql",
+    primary: "postgresql",
     databaseEnv: "DATABASE_URL_MODEL",
     ownsMigrations: true,
   },
@@ -23,9 +23,11 @@ export const modelPlatformModule = {
       "POST /provider-accounts/ensure",
       "POST /model-bindings/ensure",
       "GET /model-bindings",
+      "GET /bff/model-catalog",
+      "POST /admin/models/provider-accounts/:id/health",
     ],
     notes: [
-      "模型配置管理是后台管理核心，优先用 MySQL 保证唯一约束、审计和发布回滚。",
+      "模型配置管理是后台管理核心，优先用 PostgreSQL 保证唯一约束、审计和发布回滚。",
       "LiteLLM 只作为大模型网关，模型可见性、标签、排序、兜底账号仍由本模块治理。",
     ],
   },
@@ -35,7 +37,7 @@ export const modelPlatformModule = {
     defaultPort: 4221,
     baseUrlEnv: "KOKORO_MODEL_BASE_URL",
   },
-  dependencies: ["user"],
+  dependencies: [],
   boundaries: {
     owns: [
       "model catalog",

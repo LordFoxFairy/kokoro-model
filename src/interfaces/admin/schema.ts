@@ -3,5 +3,5 @@ export {
   adminModuleManifestSchema,
   adminNavItemManifestSchema,
   adminResourceManifestSchema,
-} from "@kokoro/platform-kit";
-export type { AdminModuleManifest } from "@kokoro/platform-kit";
+} from "@kokoro/service-kit";
+export type { AdminModuleManifest } from "@kokoro/service-kit";

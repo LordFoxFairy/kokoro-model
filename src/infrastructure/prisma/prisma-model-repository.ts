@@ -156,7 +156,7 @@ export class PrismaModelRepository implements ModelRepository {
         deletedAt: null,
         ...defined("featureKey", filter.featureKey),
       },
-      orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+      orderBy: [{ priority: "asc" }, { createdAt: "asc" }, { id: "asc" }],
     });
 
     return bindings
@@ -169,20 +169,35 @@ export class PrismaModelRepository implements ModelRepository {
       where: {
         status: "active",
         deletedAt: null,
-        featureKey: input.featureKey,
-        transportKind: input.transportKind ?? "litellm",
+        ...defined("featureKey", input.featureKey),
+        ...defined("transportKind", input.transportKind),
         publishedAt: { not: null },
         providerAccount: { status: "active", deletedAt: null, healthStatus: { not: "down" } },
       },
-      orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+      orderBy: [{ priority: "asc" }, { createdAt: "asc" }, { id: "asc" }],
     });
 
     const hiddenLabels = await this.hiddenLabelKeys(input.tenantId);
+    const selectedRevision = await this.selectedRevisionId(input);
 
     return bindings
       .map(mapModelBinding)
       .filter((binding) => !input.labelKey || binding.labelKeys.includes(input.labelKey))
-      .filter((binding) => !binding.labelKeys.some((key) => hiddenLabels.has(key)));
+      .filter((binding) =>
+        input.labelKey === undefined
+          ? !binding.labelKeys.some((key) => hiddenLabels.has(key))
+          : !hiddenLabels.has(input.labelKey),
+      )
+      .filter((binding) => selectedRevision === undefined || binding.id === selectedRevision);
+  }
+
+  private async selectedRevisionId(input: ResolveModelInput): Promise<string | undefined> {
+    if (input.tenantId === undefined || input.labelKey === undefined) return undefined;
+    const policy = await this.prisma.tenantModelPolicy.findFirst({
+      where: { tenantId: input.tenantId, labelKey: input.labelKey, status: "visible", deletedAt: null },
+      orderBy: [{ priority: "asc" }, { updatedAt: "desc" }, { id: "asc" }],
+    });
+    return policy?.modelRevisionId ?? undefined;
   }
 
   // 缺省 tenantId 返回空集合 → resolve 行为同旧（不按站过滤）。
@@ -199,8 +214,7 @@ export class PrismaModelRepository implements ModelRepository {
   async listProviderAccounts(options?: ListOptions): Promise<ProviderAccount[]> {
     const accounts = await this.prisma.providerAccount.findMany({
       where: visibleRows(options),
-      orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
-      take: 100,
+      orderBy: [{ priority: "asc" }, { createdAt: "desc" }, { id: "asc" }],
     });
 
     return accounts.map(mapProviderAccount);
@@ -209,8 +223,7 @@ export class PrismaModelRepository implements ModelRepository {
   async listAllModelBindings(options?: ListOptions): Promise<ModelBinding[]> {
     const bindings = await this.prisma.modelBinding.findMany({
       where: visibleRows(options),
-      orderBy: { createdAt: "desc" },
-      take: 100,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     });
 
     return bindings.map(mapModelBinding);
@@ -218,8 +231,8 @@ export class PrismaModelRepository implements ModelRepository {
 
   async listModelLabels(): Promise<ModelLabel[]> {
     const labels = await this.prisma.modelLabel.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 100,
+      where: { deletedAt: null },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     });
 
     return labels.map(mapModelLabel);
@@ -283,6 +296,27 @@ export class PrismaModelRepository implements ModelRepository {
     });
 
     return mapModelBinding(updated);
+  }
+
+  async setProviderHealthStatus(
+    id: string,
+    status: "unknown" | "healthy" | "degraded" | "down",
+  ): Promise<ProviderAccount | null> {
+    const account = await this.prisma.providerAccount.findUnique({ where: { id } });
+    if (account === null) return null;
+    const updated = await this.prisma.providerAccount.update({
+      where: { id },
+      data: {
+        healthStatus: status,
+        healthState: {
+          upsert: {
+            create: { status, generation: 1n },
+            update: { status, generation: { increment: 1 } },
+          },
+        },
+      },
+    });
+    return mapProviderAccount(updated);
   }
 
   async deleteProviderAccount(input: DeleteInput): Promise<ProviderAccount> {
@@ -354,12 +388,42 @@ export class PrismaModelRepository implements ModelRepository {
   }
 
   async upsertTenantModelPolicy(input: UpsertTenantModelPolicyInput): Promise<TenantModelPolicy> {
+    if (input.modelRevisionId !== undefined && input.modelRevisionId !== null) {
+      const revision = await this.prisma.modelBinding.findUnique({ where: { id: input.modelRevisionId } });
+      if (
+        revision === null ||
+        revision.deletedAt !== null ||
+        revision.status !== "active" ||
+        revision.publishedAt === null ||
+        revision.transportKind !== "litellm"
+      ) {
+        throw lifecycleError(
+          "model.binding.not_found",
+          `published LiteLLM model revision not found: ${input.modelRevisionId}`,
+          404,
+        );
+      }
+    }
     const policy = await this.prisma.tenantModelPolicy.upsert({
       where: {
         uq_policy_tenant_label: { tenantId: input.tenantId, labelKey: input.labelKey },
       },
-      create: { tenantId: input.tenantId, labelKey: input.labelKey, status: input.status },
-      update: { status: input.status },
+      create: {
+        tenantId: input.tenantId,
+        labelKey: input.labelKey,
+        modelRevisionId: input.modelRevisionId ?? null,
+        priority: input.priority ?? 100,
+        status: input.status,
+      },
+      update: {
+        ...defined("modelRevisionId", input.modelRevisionId),
+        ...defined("priority", input.priority),
+        status: input.status,
+        deletedAt: null,
+        deletedBy: null,
+        deleteReason: null,
+        generation: { increment: 1n },
+      },
     });
 
     return mapTenantModelPolicy(policy);
@@ -368,8 +432,7 @@ export class PrismaModelRepository implements ModelRepository {
   async listTenantModelPolicies(tenantId: string | undefined): Promise<TenantModelPolicy[]> {
     const policies = await this.prisma.tenantModelPolicy.findMany({
       where: tenantId === undefined ? { deletedAt: null } : { tenantId, deletedAt: null },
-      orderBy: { createdAt: "desc" },
-      take: 100,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     });
 
     return policies.map(mapTenantModelPolicy);
@@ -380,6 +443,9 @@ function mapTenantModelPolicy(policy: {
   id: string;
   tenantId: string;
   labelKey: string;
+  modelRevisionId: string | null;
+  priority: number;
+  generation: bigint;
   status: "visible" | "hidden";
   deletedAt: Date | null;
   deletedBy: string | null;
@@ -391,6 +457,9 @@ function mapTenantModelPolicy(policy: {
     id: policy.id,
     tenantId: policy.tenantId,
     labelKey: policy.labelKey,
+    modelRevisionId: policy.modelRevisionId,
+    priority: policy.priority,
+    generation: policy.generation.toString(),
     status: policy.status,
     deletedAt: policy.deletedAt,
     deletedBy: policy.deletedBy,
@@ -516,6 +585,7 @@ function mapModelLabel(label: {
 
 function mapModelBinding(binding: {
   id: string;
+  revision: number;
   providerAccountId: string;
   provider: string;
   modelName: string;
@@ -529,6 +599,8 @@ function mapModelBinding(binding: {
   contextWindow: number | null;
   priority: number;
   status: "active" | "disabled";
+  publishedAt: Date | null;
+  retiredAt: Date | null;
   deletedAt: Date | null;
   deletedBy: string | null;
   deleteReason: string | null;
@@ -555,6 +627,18 @@ function mapModelBinding(binding: {
     deleteReason: binding.deleteReason,
     createdAt: binding.createdAt,
     updatedAt: binding.updatedAt,
+    revision: binding.revision,
+    publishedAt: binding.publishedAt,
+    retiredAt: binding.retiredAt,
+    availability: binding.deletedAt !== null
+      ? "retired"
+      : binding.retiredAt !== null
+        ? "retired"
+        : binding.status !== "active"
+          ? "disabled"
+          : binding.publishedAt === null
+            ? "draft"
+            : "available",
   };
 }
 

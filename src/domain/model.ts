@@ -6,6 +6,7 @@ export type ProviderHealthStatus = "unknown" | "healthy" | "degraded" | "down";
 export type ModelBindingStatus = "active" | "disabled";
 export type ModelLabelStatus = "active" | "disabled";
 export type TenantModelPolicyStatus = "visible" | "hidden";
+export type ModelAvailability = "draft" | "available" | "provider_unavailable" | "disabled" | "retired";
 
 export interface ProviderAccount extends DeletionAudit {
   id: string;
@@ -38,6 +39,11 @@ export interface ModelBinding extends DeletionAudit {
   status: ModelBindingStatus;
   createdAt: Date;
   updatedAt: Date;
+  // Optional on hand-built test doubles; persisted revisions always expose these fields.
+  revision?: number;
+  publishedAt?: Date | null;
+  retiredAt?: Date | null;
+  availability?: ModelAvailability;
 }
 
 export interface ModelLabel extends DeletionAudit {
@@ -58,6 +64,9 @@ export interface TenantModelPolicy extends DeletionAudit {
   tenantId: string;
   labelKey: string;
   status: TenantModelPolicyStatus;
+  modelRevisionId?: string | null;
+  priority?: number;
+  generation?: string;
   createdAt: Date;
   updatedAt: Date;
 }

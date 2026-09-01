@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { loadModelEnv, modelEnvSchema } from "../../src/config/env.js";
 
-const required = { DATABASE_URL_MODEL: "mysql://root:pw@127.0.0.1:3306/model" };
+const required = { DATABASE_URL_MODEL: "postgresql://root:pw@127.0.0.1:5432/model" };
 
 describe("modelEnvSchema", () => {
   it("applies defaults for optional vars", () => {
     const env = loadModelEnv(required);
     expect(env.KOKORO_MODEL_PORT).toBe(4221);
-    expect(env.KOKORO_USER_BASE_URL).toBe("http://kokoro-user:4211");
+    expect(env.KOKORO_REDIS_URL).toBe("redis://127.0.0.1:6379");
+    expect(env.MODEL_RESOLVE_CACHE_TTL_SECONDS).toBe(30);
   });
 
   it("coerces port string and enforces range", () => {

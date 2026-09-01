@@ -2,12 +2,40 @@ name: kokoro-model
 
 on:
   push:
-    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgresql:
+        image: postgres:16
+        env:
+          POSTGRES_DB: kokoro
+          POSTGRES_USER: kokoro_app
+          POSTGRES_PASSWORD: kokoro_ci
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U kokoro_app -d kokoro"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+      redis:
+        image: redis:7
+        ports:
+          - 56379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 15
+    env:
+      DATABASE_URL_MODEL: postgresql://kokoro_app:kokoro_ci@127.0.0.1:55432/kokoro
+      KOKORO_REDIS_URL: redis://127.0.0.1:56379
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -19,3 +47,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify:release
+      - run: pnpm db:migrate
+      - run: pnpm test:integration
+      - run: pnpm lint
+      - run: pnpm build
+      - run: docker build --tag kokoro-model:ci .

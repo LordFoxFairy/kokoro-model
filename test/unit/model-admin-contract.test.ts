@@ -38,7 +38,7 @@ describe("model admin contract", () => {
       .find((resource) => resource.id === "tenant-policies")
       ?.actions.map((action) => action.id);
 
-    expect(providerActions).toEqual(["create", "delete", "restore", "disable", "enable"]);
+    expect(providerActions).toEqual(["create", "delete", "restore", "disable", "enable", "health"]);
     expect(bindingActions).toEqual(["create", "delete", "restore", "disable", "enable"]);
     expect(labelActions).toEqual(["create"]);
     expect(policyActions).toEqual(["set"]);

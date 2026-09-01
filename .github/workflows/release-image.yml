@@ -1,0 +1,86 @@
+name: kokoro-model image
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgresql:
+        image: postgres:16
+        env:
+          POSTGRES_DB: kokoro
+          POSTGRES_USER: kokoro_app
+          POSTGRES_PASSWORD: kokoro_ci
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U kokoro_app -d kokoro"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+      redis:
+        image: redis:7
+        ports:
+          - 56379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 15
+    env:
+      DATABASE_URL_MODEL: postgresql://kokoro_app:kokoro_ci@127.0.0.1:55432/kokoro
+      KOKORO_REDIS_URL: redis://127.0.0.1:56379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.2.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify release baseline
+        run: pnpm verify:release
+      - name: Apply migrations
+        run: pnpm db:migrate
+      - name: Integration tests
+        run: pnpm test:integration
+      - name: Lint
+        run: pnpm lint
+      - name: Build
+        run: pnpm build
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

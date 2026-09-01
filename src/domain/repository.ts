@@ -6,6 +6,7 @@ import type {
   ModelTransportKind,
   ProviderAccount,
   ProviderAccountStatus,
+  ProviderHealthStatus,
   TenantModelPolicy,
   TenantModelPolicyStatus,
 } from "./model.js";
@@ -40,7 +41,7 @@ export interface ListModelBindingsFilter {
 }
 
 export interface ResolveModelInput {
-  featureKey: string;
+  featureKey?: string | undefined;
   labelKey?: string | undefined;
   transportKind?: ModelTransportKind | undefined;
   // 缺省 = 不按站过滤；提供时排除命中该站 hidden 策略的 binding。
@@ -60,6 +61,8 @@ export interface EnsureModelLabelInput {
 export interface UpsertTenantModelPolicyInput {
   tenantId: string;
   labelKey: string;
+  modelRevisionId?: string | null | undefined;
+  priority?: number | undefined;
   status: TenantModelPolicyStatus;
 }
 
@@ -76,6 +79,7 @@ export interface ModelRepository {
     id: string,
     status: ProviderAccountStatus,
   ): Promise<ProviderAccount | null>;
+  setProviderHealthStatus(id: string, status: ProviderHealthStatus): Promise<ProviderAccount | null>;
   setModelBindingStatus(id: string, status: ModelBindingStatus): Promise<ModelBinding | null>;
   deleteProviderAccount(input: DeleteInput): Promise<ProviderAccount>;
   restoreProviderAccount(input: RestoreInput): Promise<ProviderAccount>;

@@ -1,5 +1,6 @@
 import { Redis } from "ioredis";
 import type { ResolveModelRequest } from "../../generated/proto/kokoro/model/v1/model_catalog_pb.js";
+import { ModelDependencyError } from "../../domain/model-lifecycle.js";
 import type { ModelResolveResult, ModelResolver } from "../../interfaces/rpc/service.js";
 
 const namespace = "kokoro:model:resolve:v1";
@@ -26,21 +27,30 @@ export class RedisCachedModelResolver {
 
   async resolve(request: Parameters<ModelResolver>[0]): Promise<ModelResolveResult | null> {
     const key = cacheKey(request);
-    const cached = await this.redis.get(key);
-    if (cached !== null) return deserialize(cached);
+    try {
+      const cached = await this.redis.get(key);
+      if (cached !== null) return deserialize(cached);
 
-    const result = await this.resolver(request);
-    await this.redis.setex(key, this.ttlSeconds, JSON.stringify(result, bigintReplacer));
-    return result;
+      const result = await this.resolver(request);
+      await this.redis.setex(key, this.ttlSeconds, JSON.stringify(result, bigintReplacer));
+      return result;
+    } catch (error) {
+      if (error instanceof ModelDependencyError) throw error;
+      throw new ModelDependencyError("model route cache is unavailable");
+    }
   }
 
   async invalidate(tenantId?: string, label?: string): Promise<void> {
-    if (tenantId && label) {
-      await this.redis.del(cacheKey({ tenantId, label }));
-      return;
+    try {
+      if (tenantId && label) {
+        await this.redis.del(cacheKey({ tenantId, label }));
+        return;
+      }
+      const keys = await this.redis.keys(`${namespace}:*`);
+      if (keys.length) await this.redis.del(...keys);
+    } catch {
+      throw new ModelDependencyError("model route cache is unavailable");
     }
-    const keys = await this.redis.keys(`${namespace}:*`);
-    if (keys.length) await this.redis.del(...keys);
   }
 }
 
@@ -51,10 +61,13 @@ function bigintReplacer(_key: string, value: unknown): unknown {
 function deserialize(value: string): ModelResolveResult | null {
   const parsed = JSON.parse(value) as (ModelResolveResult & { routingPolicyGeneration: string }) | null;
   if (parsed === null) return null;
+  if (typeof parsed.routingPolicyGeneration !== "string") {
+    throw new ModelDependencyError("model route cache entry is invalid");
+  }
   return { ...parsed, routingPolicyGeneration: BigInt(parsed.routingPolicyGeneration) };
 }
 
-/** Wraps repository mutations so MySQL writes cannot leave stale route decisions. */
+/** Wraps repository mutations so PostgreSQL writes cannot leave stale route decisions. */
 export function withRedisInvalidation<T extends object>(repository: T, redis: Redis): T {
   const mutations = new Set([
     "ensureProviderAccount", "ensureModelBinding", "ensureModelLabel",

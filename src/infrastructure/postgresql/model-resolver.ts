@@ -4,8 +4,8 @@ import type { ModelResolveResult } from "../../interfaces/rpc/service.js";
 import { PrismaModelRepository } from "../prisma/prisma-model-repository.js";
 import type { PrismaClient } from "../../../generated/prisma/index.js";
 
-/** MySQL-backed compatibility resolver. The repository owns all model facts. */
-export class MySQLModelResolver {
+/** PostgreSQL-backed compatibility resolver. The repository owns all model facts. */
+export class PostgreSQLModelResolver {
   private readonly repository: PrismaModelRepository;
 
   constructor(private readonly prisma: PrismaClient) {
@@ -14,8 +14,8 @@ export class MySQLModelResolver {
 
   async resolve(request: Pick<ResolveModelRequest, "requestId" | "tenantId" | "label">): Promise<ModelResolveResult | null> {
     const bindings = await this.repository.resolveModelBindings({
-      featureKey: request.label,
       labelKey: request.label,
+      transportKind: "litellm",
       tenantId: request.tenantId,
     });
     const binding = bindings[0];
@@ -52,6 +52,6 @@ export class MySQLModelResolver {
   }
 }
 
-export async function checkMySQL(prisma: PrismaClient): Promise<void> {
+export async function checkPostgreSQL(prisma: PrismaClient): Promise<void> {
   await prisma.$queryRaw`SELECT 1`;
 }

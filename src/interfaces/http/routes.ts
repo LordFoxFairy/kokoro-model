@@ -6,7 +6,7 @@ import {
   sendData,
   sendError,
   sendZodError,
-} from "@kokoro/platform-kit";
+} from "@kokoro/service-kit";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { ZodError } from "zod";
 import type { ModelService } from "../../application/model-service.js";
@@ -21,6 +21,7 @@ import {
   modelBindingParamsSchema,
   providerAccountParamsSchema,
   resolveModelBindingsQuerySchema,
+  bffModelCatalogQuerySchema,
 } from "./schemas.js";
 
 export function registerModelRoutes(app: FastifyInstance, service: ModelService): void {
@@ -145,10 +146,37 @@ export function registerModelRoutes(app: FastifyInstance, service: ModelService)
     async (request, reply) => {
       try {
         const query = listModelLabelsQuerySchema.parse(request.query);
-        const labels = await service.listActiveModelLabels(query.featureKey);
-        return sendData(reply, labels);
+        const page = await service.listActiveModelLabelsPage(query, query.featureKey);
+        return sendPagedData(reply, page.items, page.nextCursor);
       } catch (error) {
         return handleModelError(error, reply, "model.label_list_failed");
+      }
+    },
+  );
+
+  app.get(
+    "/bff/model-catalog",
+    {
+      schema: {
+        tags: ["model"],
+        summary: "供 Web BFF 使用的租户可见模型目录",
+        querystring: jsonSchema(bffModelCatalogQuerySchema),
+      },
+    },
+    async (request, reply) => {
+      try {
+        const query = bffModelCatalogQuerySchema.parse(request.query);
+        const context = readRequestContext(request.headers);
+        if (context.tenantId === null) {
+          return sendError(reply, 400, "model.tenant_required", "tenant context is required");
+        }
+        const page = await service.listPublicModelCatalog(context.tenantId, query.featureKey, query);
+        return reply.code(200).send({
+          data: { items: page.items, ...(page.nextCursor === undefined ? {} : { next_cursor: page.nextCursor }) },
+          meta: { request_id: context.requestId },
+        });
+      } catch (error) {
+        return handleModelError(error, reply, "model.catalog_list_failed");
       }
     },
   );
@@ -210,8 +238,9 @@ export function registerModelRoutes(app: FastifyInstance, service: ModelService)
     async (request, reply) => {
       try {
         const query = listModelBindingsQuerySchema.parse(request.query);
-        const result = await service.listModelBindings(query);
-        return sendData(reply, result);
+        const { limit, cursor, ...filter } = query;
+        const result = await service.listModelBindingsPage(filter, { limit, cursor });
+        return sendPagedData(reply, result.items, result.nextCursor);
       } catch (error) {
         return handleModelError(error, reply, "model.binding_list_failed");
       }
@@ -240,6 +269,14 @@ export function registerModelRoutes(app: FastifyInstance, service: ModelService)
   );
 }
 
+export function sendPagedData(reply: FastifyReply, items: readonly unknown[], nextCursor: string | undefined) {
+  return reply.code(200).send({
+    data: items,
+    page: nextCursor === undefined ? {} : { nextCursor },
+    requestId: readRequestContext(reply.request.headers).requestId,
+  });
+}
+
 function handleModelError(error: unknown, reply: FastifyReply, fallbackCode: string) {
   if (error instanceof ZodError) {
     return sendZodError(reply, error);
@@ -247,6 +284,10 @@ function handleModelError(error: unknown, reply: FastifyReply, fallbackCode: str
 
   if (isModelLifecycleError(error)) {
     return sendError(reply, error.statusCode, error.code, error.message);
+  }
+
+  if (error instanceof Error && (error.message === "model.invalid_cursor" || error.message === "model.invalid_page")) {
+    return sendError(reply, 400, error.message, "分页参数无效");
   }
 
   return sendError(reply, 500, fallbackCode, "模型配置操作失败");

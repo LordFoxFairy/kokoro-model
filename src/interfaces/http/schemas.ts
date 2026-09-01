@@ -59,6 +59,11 @@ export const ensureModelBindingRequestSchema = z
   });
 
 export const modelLabelStatusSchema = z.enum(["active", "disabled"]);
+export const providerHealthStatusSchema = z.enum(["unknown", "healthy", "degraded", "down"]);
+
+export const providerHealthRequestSchema = z
+  .object({ status: providerHealthStatusSchema })
+  .strict();
 
 // 用户可选「模型标签」= 面向用户的模型目录项;key 唯一(幂等 upsert),featureKey 归类(chat/embedding…)。
 export const ensureModelLabelRequestSchema = z
@@ -77,6 +82,8 @@ export const ensureModelLabelRequestSchema = z
 export const listModelLabelsQuerySchema = z
   .object({
     featureKey: z.string().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    cursor: z.string().min(1).max(2048).optional(),
   })
   .strict();
 
@@ -84,6 +91,31 @@ export const listModelBindingsQuerySchema = z
   .object({
     featureKey: z.string().min(1).optional(),
     labelKey: z.string().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    cursor: z.string().min(1).max(2048).optional(),
+  })
+  .strict();
+
+export const listTenantModelPoliciesQuerySchema = z
+  .object({
+    tenantId: z.string().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    cursor: z.string().min(1).max(2048).optional(),
+  })
+  .strict();
+
+export const listModelPageQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    cursor: z.string().min(1).max(2048).optional(),
+  })
+  .strict();
+
+export const bffModelCatalogQuerySchema = z
+  .object({
+    featureKey: z.string().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    cursor: z.string().min(1).max(2048).optional(),
   })
   .strict();
 
@@ -101,6 +133,8 @@ export const upsertTenantModelPolicyRequestSchema = z
   .object({
     tenantId: z.string().min(1),
     labelKey: z.string().min(1),
+    modelRevisionId: z.string().min(1).nullable().optional(),
+    priority: z.number().int().min(0).optional(),
     status: tenantModelPolicyStatusSchema,
   })
   .strict();

@@ -8,6 +8,7 @@ import {
   ResolveModelResponseSchema,
   type ResolveModelResponse,
 } from "../../generated/proto/kokoro/model/v1/model_catalog_pb.js";
+import { isModelDependencyError } from "../../domain/model-lifecycle.js";
 
 export interface ModelResolveResult {
   modelRevisionId: string;
@@ -33,11 +34,19 @@ export function createModelCatalogService(
       if (!request.requestId || !request.tenantId || !request.label) {
         throw new ConnectError("request_id, tenant_id and label are required", Code.InvalidArgument);
       }
-      const result = await resolve({
-        requestId: request.requestId,
-        tenantId: request.tenantId,
-        label: request.label,
-      });
+      let result: ModelResolveResult | null;
+      try {
+        result = await resolve({
+          requestId: request.requestId,
+          tenantId: request.tenantId,
+          label: request.label,
+        });
+      } catch (error) {
+        if (isModelDependencyError(error)) {
+          throw new ConnectError("model dependencies are unavailable", Code.Unavailable);
+        }
+        throw new ConnectError("model resolution failed", Code.Internal);
+      }
       if (result === null) {
         throw new ConnectError("no model route matched", Code.NotFound);
       }

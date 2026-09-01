@@ -14,6 +14,9 @@ Model 的 owner 边界。
 本设计吸收 Manus API 的四点：显式版本、稳定 opaque ID、统一错误 envelope、异步/重试边界
 清晰；不复制其 `/v2/task.create` operation 命名，也不把 Agent Task 资源塞进 Model。
 
+管理端 catalog/provider mutation 必须携带 `Idempotency-Key`；重复请求返回同一 revision，冲突 payload
+返回统一 `model.idempotency_conflict`，不能只依赖 Redis。
+
 ## 1. 边界
 
 `kokoro-model` 对外提供两类入口：
@@ -67,7 +70,7 @@ Model 只返回可路由的模型元数据，不执行 provider 调用、不返�
 |---|---|---|
 | 缺少必填字段 | `InvalidArgument` | 参数校验失败 |
 | 没有可用路由 | `NotFound` | `model.route_not_found` |
-| MySQL/Redis 暂时不可用 | `Unavailable` | 依赖失败；仅幂等读可重试 |
+| PostgreSQL/Redis 暂时不可用 | `Unavailable` | 依赖失败；仅幂等读可重试 |
 | 未分类异常 | `Internal` | 不暴露 SQL、堆栈或 secret |
 
 调用方必须设置有限 deadline；不允许无限等待。
@@ -100,6 +103,11 @@ Model 只返回可路由的模型元数据，不执行 provider 调用、不返�
 }
 ```
 
+所有 HTTP 响应都会回显 `requestId`。调用方应优先发送 `x-kokoro-request-id`；缺省时服务生成
+本次请求的 id。错误统一为 `{ error: { code, message, details? }, requestId }`，不返回 SQL、堆栈
+或 provider 凭据。`/resolve` 的 body `requestId` 仅用于本次请求校验失败时的回显，正式跨仓链路仍以
+Root RPC 的 `request_id` 为准。
+
 ## 4. HTTP management surface
 
 以下入口只允许内部 Admin Gateway/管理调用方访问，不是 Agent runtime contract：
@@ -116,6 +124,33 @@ Model 只返回可路由的模型元数据，不执行 provider 调用、不返�
 | `GET` | `/model-labels` | 查询 active 标签 |
 | `GET` | `/model-bindings` | 查询 Binding |
 | `GET` | `/model-bindings/resolve` | 解析预览；租户上下文来自 `x-kokoro-tenant-id` |
+| `GET` | `/bff/model-catalog` | `web-bff` 专用的租户可见目录，租户只来自 `x-kokoro-tenant-id` |
+
+列表接口接受 `limit=1..100` 和 opaque `cursor`。为保持已有本地消费者兼容，`data` 仍是数组，分页
+信息位于同层的 `page: { nextCursor? }`；BFF facade 使用浏览器契约风格的
+`data: { items, next_cursor? }`。游标绑定资源和查询范围，跨资源、跨 filter 或损坏的游标返回
+`400 model.invalid_cursor`。
+
+`/bff/model-catalog` 的成功响应：
+
+```json
+{
+  "data": {
+    "items": [{
+      "key": "chat.default",
+      "displayName": "Kokoro 默认",
+      "featureKey": "chat",
+      "availability": "available",
+      "capabilities": { "inputModalities": ["text"], "outputModalities": ["text"], "contextWindow": 128000 }
+    }]
+  },
+  "meta": { "request_id": "req_01" }
+}
+```
+
+目录只返回 active label。`hidden` tenant policy 会从该租户目录剔除；没有 policy 使用全局目录。
+`availability` 为 `available`、`provider_unavailable` 或 `unconfigured`，因此 UI 不会把目录存在误报成
+可执行。BFF 不执行模型调用，实际 client/执行仍由 Agent runtime 按 Root RPC contract 完成。
 
 所有写请求必须通过应用层完成关联、软删除、状态和事务校验；数据库不建立外键。跨表读取使用参数化 SQL JOIN，并限制返回列。
 
@@ -128,8 +163,27 @@ Model 只返回可路由的模型元数据，不执行 provider 调用、不返�
 - 关联对象不存在、已删除或状态不允许时，由 Application/Repository 返回稳定业务错误码。
 - Model schema 不建立外键；业务关联由事务内 Application/Repository 校验，读取关联使用参数化 JOIN。
 - V1 没有 visible tenant policy 时使用全局 label 默认路由；存在 hidden policy 时不返回该 label。
+- Provider availability 状态为 `unknown -> healthy/degraded/down` 的健康投影；`down` 不参与 resolve，
+  `degraded` 仍可参与 resolve。Binding 的 `publishedAt/retiredAt/status` 组成 revision 状态视图：
+  未发布为 `draft`，已发布且 provider 可用为 `available`，禁用为 `disabled`，退役/软删除为 `retired`。
+- tenant policy 的 `(tenant_id, label_key)` 是幂等键；Provider、Binding、Label 的 ensure 也分别使用业务唯一键。
+  重试相同 payload 返回同一资源，不产生重复记录。管理写入须由 Admin Gateway 以 `admin` caller 进入；
+  BFF 只允许 `web-bff` caller 读取 tenant-scoped catalog，session 只允许 runtime-internal 读取。
 
-## 6. 生成与验证
+## 6. 统一错误与权限矩阵
+
+| Surface | caller | tenant 来源 | 失败语义 |
+|---|---|---|---|
+| Root Resolve RPC | Agent/受信 runtime | RPC `tenant_id` | `InvalidArgument` / `NotFound` / `Unavailable` / `Internal` |
+| `/model-bindings/resolve` | session 等 runtime-internal | `x-kokoro-tenant-id`，缺省仅限内部预览 | 统一 HTTP error envelope |
+| `/bff/model-catalog` | web-bff | 必须有 `x-kokoro-tenant-id` | 缺 tenant 为 `400 model.tenant_required` |
+| `/admin/models/*` | admin | 管理 gateway 的授权上下文 | route-access 先认证 caller，再由 manifest permission 做操作授权 |
+
+Model 不导入 IAM、Agent、Credit 或 Billing 的实现，也不把 request body 中的 tenant 当作授权依据。
+`x-kokoro-service` 和对应 per-caller secret 是服务间身份；生产缺少 `session`、`admin` 或 `web-bff`
+凭据时启动失败。
+
+## 7. 生成与验证
 
 修改 RPC 必须修改 Root `.proto`，然后执行：
 
@@ -142,9 +196,9 @@ pnpm verify:release
 
 禁止手工修改 `src/generated/`；生成物、contract provenance 和 consumer 清单必须一致。
 
-## 7. 初始模型目录
+## 8. 初始模型目录
 
-`database/70-model.init.mysql.sql` 是 OpenRouter 公共 Models API 的幂等快照 materialization，当前包含 395 个标准模型 ID，例如
+`database/70-model.init.postgresql.sql` 是 OpenRouter 公共 Models API 的幂等快照 materialization，当前包含 395 个标准模型 ID，例如
 `openai/gpt-4o-mini`、`anthropic/claude-sonnet-4.6`、`google/gemini-2.5-pro`、`deepseek/deepseek-chat` 和 `qwen/qwen3-30b-a3b`。
 完整名称和 metadata 以 SQL 快照中的 `model_definition`/`model_revision` 为准，不再人为拼接 `kokoro-openai-*` 这类非标准 ID。
 

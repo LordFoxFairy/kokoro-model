@@ -118,6 +118,7 @@ function trackingRepo(captured: Captured): ModelRepository {
       return label;
     },
     setProviderAccountStatus: async () => account,
+    setProviderHealthStatus: async () => account,
     setModelBindingStatus: async () => binding,
     deleteProviderAccount: async (input) => {
       captured.deleteProviderAccount = input;
@@ -208,6 +209,44 @@ describe("ModelService delegates to repository", () => {
     expect((await service.listActiveModelLabels("chat")).map((l) => l.key)).toEqual(["chat.active"]);
     // 无 featureKey = 只按 active 过滤,跨 feature。
     expect((await service.listActiveModelLabels()).map((l) => l.key)).toEqual(["chat.active", "embed.active"]);
+  });
+
+  it("builds a tenant-visible public catalog with capabilities and availability", async () => {
+    const visible = { ...label, key: "chat.default" };
+    const hidden = { ...label, key: "chat.hidden" };
+    const configured = { ...binding, labelKeys: ["chat.default"] };
+    const repo = {
+      ...trackingRepo({}),
+      listModelLabels: async () => [visible, hidden],
+      listTenantModelPolicies: async () => [{ ...policy, labelKey: "chat.hidden" }],
+      listModelBindings: async (filter: ListModelBindingsFilter) =>
+        filter.labelKey === "chat.default" ? [configured] : [],
+      resolveModelBindings: async (input: ResolveModelInput) =>
+        input.labelKey === "chat.default" ? [configured] : [],
+    };
+
+    const page = await new ModelService(repo).listPublicModelCatalog("tenant-a", "chat", { limit: 10 });
+    expect(page.items).toEqual([
+      expect.objectContaining({
+        key: "chat.default",
+        availability: "available",
+        capabilities: { inputModalities: ["text"], outputModalities: ["text"], contextWindow: null },
+      }),
+    ]);
+  });
+
+  it("reports provider_unavailable when a visible label has only unavailable bindings", async () => {
+    const configured = { ...binding, labelKeys: ["chat.default"] };
+    const repo = {
+      ...trackingRepo({}),
+      listModelLabels: async () => [label],
+      listTenantModelPolicies: async () => [],
+      listModelBindings: async () => [configured],
+      resolveModelBindings: async () => [],
+    };
+
+    const page = await new ModelService(repo).listPublicModelCatalog("tenant-a", "chat", {});
+    expect(page.items[0]?.availability).toBe("provider_unavailable");
   });
 
   it("forwards listModelBindings filter and result", async () => {

@@ -55,4 +55,29 @@ describe("ModelCatalogService RPC adapter", () => {
       }, context),
     ).rejects.toBeInstanceOf(ConnectError);
   });
+
+  it("passes the root label without inventing a feature key", async () => {
+    let received: { requestId: string; tenantId: string; label: string } | undefined;
+    const service = createModelCatalogService(async (request) => {
+      received = request;
+      return {
+        modelRevisionId: "revision-1",
+        providerId: "provider-1",
+        providerModelName: "model-1",
+        transport: ModelTransport.LITELLM,
+        routingPolicyId: "policy-1",
+        routingPolicyGeneration: 1n,
+        digest: "digest-1",
+      };
+    });
+
+    await service.resolveModel({
+      $typeName: "kokoro.model.v1.ResolveModelRequest",
+      requestId: "request-1",
+      tenantId: "tenant-1",
+      label: "claude-code",
+    }, context);
+
+    expect(received).toEqual({ requestId: "request-1", tenantId: "tenant-1", label: "claude-code" });
+  });
 });

@@ -2,6 +2,8 @@ export * from "./interfaces/admin/manifest.js";
 export * from "./interfaces/admin/schema.js";
 export * from "./application/model-service.js";
 export * from "./domain/model.js";
+export * from "./domain/model-lifecycle.js";
+export * from "./application/pagination.js";
 export * from "./config/env.js";
 export * from "./interfaces/http/server.js";
 export * from "./interfaces/http/schemas.js";

@@ -10,6 +10,13 @@ export interface ErrorEnvelope {
   requestId?: string;
 }
 
+function responseRequestId(reply: FastifyReply): string {
+  const raw = reply.request.headers["x-kokoro-request-id"];
+  if (typeof raw === "string" && raw.length > 0) return raw;
+  if (Array.isArray(raw) && raw[0]) return raw[0];
+  return reply.request.id;
+}
+
 export function registerHealthRoute(app: FastifyInstance, moduleName: string): void {
   app.get("/healthz", async (_request, reply) =>
     sendData(reply, {
@@ -20,7 +27,7 @@ export function registerHealthRoute(app: FastifyInstance, moduleName: string): v
 }
 
 export function sendData<Data>(reply: FastifyReply, data: Data, statusCode = 200, requestId?: string) {
-  return reply.code(statusCode).send(requestId ? { data, requestId } : { data });
+  return reply.code(statusCode).send({ data, requestId: requestId ?? responseRequestId(reply) });
 }
 
 export function sendError(
@@ -42,9 +49,7 @@ export function sendError(
     envelope.error.details = details;
   }
 
-  if (requestId) {
-    envelope.requestId = requestId;
-  }
+  envelope.requestId = requestId ?? responseRequestId(reply);
 
   return reply.code(statusCode).send(envelope);
 }
