@@ -4,7 +4,7 @@ import { createModelServer } from "../../src/interfaces/http/server.js";
 
 // WHY: /docs/json 不触发任何 DB 查询，故传未连接的 PrismaClient 即可（构造不连接）。
 const prisma = new PrismaClient({ datasources: { db: { url: "file:./openapi-test.db" } } });
-const app = createModelServer({ prisma });
+const app = createModelServer({ prisma, routeAccess: { secrets: {}, isProduction: false, insecureLocal: true } });
 
 describe("model OpenAPI docs", () => {
   afterAll(async () => {

@@ -13,7 +13,7 @@ pnpm start
 ```
 
 默认监听 `127.0.0.1:4221`。`GET /healthz` 只检查进程，`GET /readyz` 检查 PostgreSQL、Redis 和契约生成状态。
-同一个 production HTTP 入口提供 BFF 目录和兼容解析：
+同一个 production HTTP 入口提供 BFF 目录和解析：
 
 ```bash
 curl -fsS \

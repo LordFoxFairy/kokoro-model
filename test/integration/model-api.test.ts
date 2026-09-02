@@ -3,7 +3,7 @@ import { createModelServer } from "../../src/interfaces/http/server.js";
 import { cleanModelDatabase, createTestPrismaClient } from "./helpers.js";
 
 const prisma = createTestPrismaClient();
-const app = createModelServer({ prisma });
+const app = createModelServer({ prisma, routeAccess: { secrets: {}, isProduction: false, insecureLocal: true } });
 
 async function createProviderAccount(provider = "openai", key = "main"): Promise<string> {
   const response = await app.inject({

@@ -3,7 +3,7 @@ import { createModelServer } from "../../src/interfaces/http/server.js";
 import { cleanModelDatabase, createTestPrismaClient } from "./helpers.js";
 
 const prisma = createTestPrismaClient();
-const app = createModelServer({ prisma });
+const app = createModelServer({ prisma, routeAccess: { secrets: {}, isProduction: false, insecureLocal: true } });
 
 async function seedChatBindings(): Promise<void> {
   const account = await prisma.providerAccount.create({
@@ -127,7 +127,7 @@ describe("site model policy API", () => {
       "gpt-4o-mini",
     ]);
 
-    // no site header → legacy behaviour, no filtering.
+    // no tenant header → the policy filter has no tenant scope.
     const noSite = await app.inject({
       method: "GET",
       url: "/model-bindings/resolve?featureKey=chat",

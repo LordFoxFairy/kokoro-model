@@ -3,7 +3,7 @@ import { createModelServer } from "../../src/interfaces/http/server.js";
 import { cleanModelDatabase, createTestPrismaClient } from "./helpers.js";
 
 const prisma = createTestPrismaClient();
-const app = createModelServer({ prisma });
+const app = createModelServer({ prisma, routeAccess: { secrets: {}, isProduction: false, insecureLocal: true } });
 
 async function ensureAccount(key: string): Promise<string> {
   const res = await app.inject({

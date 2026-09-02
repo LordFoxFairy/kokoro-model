@@ -68,8 +68,6 @@ export interface RouteAccessConfig {
   requiredCallers?: ServiceCaller[];
   // 显式测试直通口：置真则跳过一切校验（等价旧 insecure local）。
   insecureLocal?: boolean;
-  // dev 未配凭据时的一次性告警注入；缺省 console.warn。
-  warn?: (message: string) => void;
   // 未声明路由的兜底等级（default-internal）。缺省 runtime-internal。
   defaultLevel?: AccessLevel;
 }
@@ -77,7 +75,6 @@ export interface RouteAccessConfig {
 interface RouteAccessState {
   routes: DeclaredRoute[];
   config: RouteAccessConfig;
-  warned: boolean;
   anyConfigured: boolean;
   defaultLevel: AccessLevel;
 }
@@ -146,9 +143,9 @@ function resolveLevel(routes: DeclaredRoute[], path: string, defaultLevel: Acces
   return best?.level ?? defaultLevel;
 }
 
-// 安装入站访问控制钩子并初始化路由矩阵。生产缺凭据即抛（进程启动失败，杜绝空 secret 静默直通）。
-// 校验顺序：public 直接放行 → insecureLocal 直通 → 未配凭据(dev)直通并告警一次 →
-// 缺 caller 头 401 → 未知 caller/secret 不符 401（authn）→ caller 不在等级允许集 403（authz）。
+// 安装入站访问控制钩子并初始化路由矩阵。缺少凭据时只有显式 insecureLocal fixture 可以直通。
+// 校验顺序：public 直接放行 → insecureLocal 直通 → 未配凭据 503 → 缺 caller 头 401 →
+// 未知 caller/secret 不符 401（authn）→ caller 不在等级允许集 403（authz）。
 export function registerRouteAccess(app: FastifyInstance, config: RouteAccessConfig): void {
   if (config.isProduction && !config.insecureLocal) {
     const required = config.requiredCallers ?? [];
@@ -165,13 +162,10 @@ export function registerRouteAccess(app: FastifyInstance, config: RouteAccessCon
   const state: RouteAccessState = {
     routes: [],
     config,
-    warned: false,
     anyConfigured,
     defaultLevel: config.defaultLevel ?? "runtime-internal",
   };
   STATE.set(app, state);
-
-  const warn = config.warn ?? ((message: string) => console.warn(message));
 
   app.addHook("onRequest", async (request, reply) => {
     const path = request.url.split("?", 1)[0] ?? request.url;
@@ -184,14 +178,7 @@ export function registerRouteAccess(app: FastifyInstance, config: RouteAccessCon
       return;
     }
     if (!state.anyConfigured) {
-      if (!config.isProduction) {
-        if (!state.warned) {
-          state.warned = true;
-          warn(`[route-access] ${SERVICE_CALLER_HEADER}/${INTERNAL_SECRET_HEADER} 未配置，内部路由直通——仅限本地/过渡期，生产须配置`);
-        }
-        return;
-      }
-      return sendError(reply, 401, "internal.unauthorized", "内部调用凭据未配置");
+      return sendError(reply, 503, "internal.auth_not_configured", "内部调用凭据未配置");
     }
 
     const caller = headerValue(request, SERVICE_CALLER_HEADER);

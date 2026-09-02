@@ -22,6 +22,7 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
       prisma,
       resolver: async () => result,
       readinessChecks: { postgresql: async () => undefined, redis: async () => undefined },
+      routeAccess: { secrets: {}, isProduction: false, insecureLocal: true },
     });
 
     const ready = await app.inject({ method: "GET", url: "/readyz" });

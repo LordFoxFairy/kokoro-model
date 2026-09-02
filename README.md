@@ -45,7 +45,7 @@ pnpm build
 docker compose up --build
 ```
 
-本地开发也可以只启动组合：`docker compose up --build`。HTTP target 与 RPC 是两个独立进程，HTTP production target 同时提供目录与兼容解析入口，
+本地开发也可以只启动组合：`docker compose up --build`。HTTP target 与 RPC 是两个独立进程，HTTP production target 同时提供目录与解析入口，
 分别使用 `pnpm http:dev` 和 `pnpm rpc:dev`；启动前必须提供 PostgreSQL 的
 `DATABASE_URL_MODEL` 和 Redis 的 `KOKORO_REDIS_URL`。不在仓库 `.env` 中保存真实 provider key，
 Provider 目录只记录 `secretRef`。
@@ -55,7 +55,7 @@ Provider 目录只记录 `secretRef`。
 - PostgreSQL: `55432`
 - Redis: `56379`
 - `/readyz` 必须同时通过 PostgreSQL `SELECT 1` 和 Redis `PING`
-- production HTTP：`GET /bff/model-catalog`（BFF tenant catalog）与受内部认证保护的 `POST /resolve`（兼容解析）由同一个监听器提供
+- production HTTP：`GET /bff/model-catalog`（BFF tenant catalog）与受内部认证保护的 `POST /resolve` 由同一个监听器提供
 
 初始化目录：先执行 migration，再按环境决定是否执行 `database/70-model.init.postgresql.sql` 和 builtin seed。OpenRouter 快照项默认
 `disabled`，选择 `litellm` transport 时必须先在外部 LiteLLM model_list 部署同名 gateway route，再按环境显式启用；不使用 LiteLLM 的本地 profile 可以只运行 Model 的 catalog/resolve，不执行 LiteLLM seed，也不会影响 `/readyz`。

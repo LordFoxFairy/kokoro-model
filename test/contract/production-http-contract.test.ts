@@ -3,7 +3,7 @@ import { PrismaClient } from "../../generated/prisma/index.js";
 import { createModelServer } from "../../src/interfaces/http/server.js";
 
 const prisma = new PrismaClient({ datasources: { db: { url: "file:./production-http-contract.db" } } });
-const app = createModelServer({ prisma, resolver: async () => null });
+const app = createModelServer({ prisma, resolver: async () => null, routeAccess: { secrets: {}, isProduction: false, insecureLocal: true } });
 
 describe("production HTTP contract", () => {
   afterAll(async () => {
