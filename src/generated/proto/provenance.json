@@ -2,10 +2,10 @@
   "consumer": "kokoro-model",
   "generatorSha256": "c3ccc8124c83697c901eadaa1643de1d8753c390253fe274658c30360512bd46",
   "language": "typescript",
-  "manifestSha256": "291a0a3479b2da7da38d7757a26c7e2ac547953f680a26d77b86137e8b132c99",
+  "manifestSha256": "6d7a093e07f92573a4320dec9590f0ea42461e70291c367322f4f29fb97f697a",
   "outputs": {
-    "kokoro/common/v1/common_pb.ts": "6ee033b6a1c4727a998e88b4212e1f7da69fcaceae3c50619f1f3881e4171306",
-    "kokoro/model/v1/model_catalog_pb.ts": "c2fc67db34cec83f045769c25c75129acb6ad2d6327aed1002844dbf19b7fc36"
+    "kokoro/common/v1/common_pb.ts": "266ae10b88c2e7c0348d7cecc0bd552f3f6d1fd3ee3ade2c3f6d365dae017687",
+    "kokoro/model/v1/model_catalog_pb.ts": "2e50b16824c9e41ec349713ab5518e4c318e3b4ad249714dfb1dd1a07ee41e34"
   },
   "protoFiles": [
     "kokoro/common/v1/common.proto",
@@ -26,17 +26,17 @@
     "contract/proto/kokoro/iam/v1/authorization.proto": "99d3f5711682430fb0a10ae3d96ef481d6b4675bef405c568150201f52cab001",
     "contract/proto/kokoro/model/v1/model_catalog.proto": "9de803e0511c744374541c980bdcb6a1f4a6b66d846fc61f1f75fd2db71923b3",
     "contract/proto/kokoro/site/v1/site.proto": "ad8b8355d68fe5ce20bdb9ca584cfe1115a0f35beb840a4e6399ad23a153ac7a",
-    "contract/proto/kokoro/storage/v1/storage.proto": "20a498ad61b7ddd869d1917ab6b774732a85d5ac06b08313d1c050ec37d2ab71",
-    "contract/slice-a-contract-manifest.yaml": "291a0a3479b2da7da38d7757a26c7e2ac547953f680a26d77b86137e8b132c99",
-    "contract/validate_slice_a_manifest.py": "7d3675baffb8310d072aa8cd58ee7304ec09d86d33e2fb1a65124394b2ef4b2d",
+    "contract/proto/kokoro/storage/v1/storage.proto": "b9a9ab57565ccfcc0b31abaa8cb488d9b6719bb6e00e9e69b2ffafddda60edd6",
+    "contract/slice-a-contract-manifest.yaml": "6d7a093e07f92573a4320dec9590f0ea42461e70291c367322f4f29fb97f697a",
+    "contract/validate_slice_a_manifest.py": "666a719db304973ff0e504e116b1f8e991e404575c4a55b0b50a250b462e9fd1",
     "package.json": "02b640687727b2826801076ab5a5b3ba182a48f37944898fed264dbd731bc680",
     "pnpm-lock.yaml": "378729d7e6b4432d484f0097f52525f162e324dab06a0e20fa31e279ec949270",
     "pnpm-workspace.yaml": "0f22d54194aa7cc861b7589ddada4355f0c145a77f130810adee19a0e9189279",
     "pyproject.toml": "900d8b31deb010bf26bdb5ccd16466bdb176d3d609068c678bd7e3d967a9bf09",
     "uv.lock": "09bc222ff5c4308fd2ed5967407dd1dd41b44ffbfebe8839ef441aa78d06468f"
   },
-  "sourceRootCommit": "468a21b58cff166a32527b2fb9f388ad6842b2c2",
-  "sourceRootTree": "d5fec5c152d1c4b63c16db833bc601d4e793345d",
+  "sourceRootCommit": "fff24d72d586e19e9cbe36d4b680411f6dd8edfd",
+  "sourceRootTree": "df21ccae4afdc70ae106b81025aa55cbfe8856a3",
   "tools": {
     "grpcio-tools": "1.76.0",
     "protobuf": "6.33.6",
