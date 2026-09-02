@@ -47,7 +47,7 @@ enum ControlStatus {
 
 message PrincipalContext {
   string principal_id = 1;
-  string site_id = 2;
+  string tenant_id = 2;
   string organization_id = 3;
   repeated string permission_keys = 4;
 }

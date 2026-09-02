@@ -1,8 +1,8 @@
 {
   "authority": "Root contract/",
-  "root_commit": "afd367db387e11172150e64b8c5278918c47cd24",
+  "root_commit": "468a21b58cff166a32527b2fb9f388ad6842b2c2",
   "proto_sha256": {
-    "kokoro/common/v1/common.proto": "936baf2c132146b9b159248dcca634787578f9aa8ad0403c041df96f79b3ab5e",
+    "kokoro/common/v1/common.proto": "9397d9dfccfc3a0bd2dcb1976c6e936882a58750daedd21bb91c0d120844674a",
     "kokoro/model/v1/model_catalog.proto": "9de803e0511c744374541c980bdcb6a1f4a6b66d846fc61f1f75fd2db71923b3"
   }
 }
