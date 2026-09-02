@@ -42,7 +42,7 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     await prisma.$disconnect();
   });
 
-  it("rejects unauthenticated /resolve requests before body tenantId can act as owner context", async () => {
+  it("rejects unauthenticated /resolve requests before a browser-controlled tenant can act as owner context", async () => {
     const app = createModelServer({
       prisma: new PrismaClient({ datasources: { db: { url: "file:./resolve-auth-test.db" } } }),
       resolver: async () => result,
@@ -52,7 +52,7 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     const response = await app.inject({
       method: "POST",
       url: "/resolve",
-      payload: { requestId: "request-unauthenticated", tenantId: result.modelRevisionId, label: "default" },
+      payload: { requestId: "request-unauthenticated", label: "default" },
     });
 
     expect(response.statusCode).toBe(401);
@@ -71,7 +71,7 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
       method: "POST",
       url: "/resolve",
       headers: { "x-kokoro-service": "agent", "x-kokoro-internal-secret": "sec-agent" },
-      payload: { requestId: "request-body-tenant", tenantId: result.modelRevisionId, label: "default" },
+      payload: { requestId: "request-body-tenant", label: "default" },
     });
     expect(missingContext.statusCode).toBe(400);
     expect(missingContext.json().error.code).toBe("model.tenant_required");
@@ -107,9 +107,12 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
   it("exposes health and resolve over the local HTTP surface", async () => {
     const app = createTargetHttpServer(async () => result);
     const health = await app.inject({ method: "GET", url: "/healthz" });
-    const response = await app.inject({ method: "POST", url: "/resolve", payload: {
-      requestId: "request-1", tenantId: result.modelRevisionId, label: "default",
-    } });
+    const response = await app.inject({
+      method: "POST",
+      url: "/resolve",
+      headers: { "x-kokoro-tenant-id": result.modelRevisionId },
+      payload: { requestId: "request-1", label: "default" },
+    });
     expect(health.statusCode).toBe(200);
     expect(response.statusCode).toBe(200);
     expect(response.json().data.modelRevisionId).toBe(result.modelRevisionId);
@@ -123,7 +126,8 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     const invalid = await failing.inject({
       method: "POST",
       url: "/resolve",
-      payload: { requestId: "request-invalid", tenantId: result.modelRevisionId },
+      headers: { "x-kokoro-tenant-id": result.modelRevisionId },
+      payload: { requestId: "request-invalid" },
     });
     expect(invalid.statusCode).toBe(400);
     expect(invalid.json()).toMatchObject({ meta: { request_id: "request-invalid" }, error: { code: "request.invalid" } });
@@ -131,7 +135,8 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     const unavailable = await failing.inject({
       method: "POST",
       url: "/resolve",
-      payload: { requestId: "request-unavailable", tenantId: result.modelRevisionId, label: "default" },
+      headers: { "x-kokoro-tenant-id": result.modelRevisionId },
+      payload: { requestId: "request-unavailable", label: "default" },
     });
     expect(unavailable.statusCode).toBe(503);
     expect(unavailable.json()).toMatchObject({
@@ -147,7 +152,8 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     const response = await app.inject({
       method: "POST",
       url: "/resolve",
-      payload: { requestId: "request-missing", tenantId: result.modelRevisionId, label: "missing" },
+      headers: { "x-kokoro-tenant-id": result.modelRevisionId },
+      payload: { requestId: "request-missing", label: "missing" },
     });
 
     expect(response.statusCode).toBe(404);

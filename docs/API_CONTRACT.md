@@ -112,8 +112,8 @@ independent secret values through the environment.
 调用方还必须通过 `x-kokoro-service` 和对应的 `x-kokoro-internal-secret`。浏览器字段不能作为授权依据。
 跨服务正式调用优先使用下方 RPC。
 
-`createTargetHttpServer` 是本地 fixture/兼容入口，保留 `{ requestId, tenantId, label }` 的旧 body
-形状，且不代表 production owner API。该入口只用于本地 target HTTP 测试与 smoke fixture。
+`createTargetHttpServer` 是本地 target fixture，使用与 production 相同的可信租户请求上下文，且不代表
+production owner API。该入口只用于本地 target HTTP 测试与 smoke fixture。
 
 成功响应为 `{ "data": ResolveModelResponse }`；无匹配路由返回 HTTP `404` 和：
 

@@ -11,7 +11,7 @@ describe("production HTTP contract", () => {
     await prisma.$disconnect();
   });
 
-  it("documents the catalog and legacy resolve routes on the same production surface", async () => {
+  it("documents the catalog and resolve routes on the same production surface", async () => {
     await app.ready();
     const response = await app.inject({ method: "GET", url: "/docs/json" });
     expect(response.statusCode).toBe(200);

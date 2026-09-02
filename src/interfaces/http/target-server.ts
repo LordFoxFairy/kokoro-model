@@ -11,12 +11,6 @@ const trustedResolveRequestSchema = z.object({
   label: z.string().min(1),
 }).strict();
 
-const fixtureResolveRequestSchema = z.object({
-  requestId: z.string().min(1),
-  tenantId: z.string().uuid(),
-  label: z.string().min(1),
-}).strict();
-
 export interface ReadinessChecks {
   postgresql: () => Promise<void>;
   redis: () => Promise<void>;
@@ -72,24 +66,8 @@ export function createTargetHttpServer(resolver: ModelResolver, checks?: Readine
     meta: { request_id: requestId(request.headers["x-kokoro-request-id"], request.id) },
   }));
   registerTargetReadinessRoute(app, checks);
-  // This standalone server is a local fixture and intentionally keeps the legacy body tenantId shape.
-  registerFixtureResolveRoute(app, resolver);
+  registerTargetResolveRoute(app, resolver);
   return app;
-}
-
-function registerFixtureResolveRoute(app: FastifyInstance, resolver: ModelResolver): void {
-  app.post("/resolve", async (request, reply) => {
-    const body = request.body as Record<string, unknown> | null;
-    const inputRequestId = typeof body?.requestId === "string" ? body.requestId : undefined;
-    const id = inputRequestId ?? requestId(request.headers["x-kokoro-request-id"], request.id);
-    try {
-      const input = fixtureResolveRequestSchema.parse(request.body);
-      const response = await resolveTarget(reply, resolver, input, id);
-      return response;
-    } catch (error) {
-      return resolveTargetError(reply, error, id);
-    }
-  });
 }
 
 async function resolveTarget(
