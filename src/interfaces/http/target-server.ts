@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { isModelDependencyError } from "../../domain/model-lifecycle.js";
+import { isModelDependencyError } from "../../domain/errors.js";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import type { ModelResolver } from "../rpc/service.js";
 

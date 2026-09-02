@@ -1,22 +1,24 @@
 import type { Prisma, PrismaClient } from "../../../generated/prisma/index.js";
 import type {
   ModelBinding,
-  ModelBindingStatus,
   ModelLabel,
   ProviderAccount,
-  ProviderAccountStatus,
   TenantModelPolicy,
-} from "../../domain/model.js";
-import { ModelLifecycleError, type DeleteInput, type ListOptions, type RestoreInput } from "../../domain/model-lifecycle.js";
+} from "../../domain/models.js";
+import type { ModelBindingStatus, ProviderAccountStatus } from "../../domain/enums.js";
+import { ModelLifecycleError } from "../../domain/errors.js";
 import type {
+  DeleteInput,
   EnsureModelBindingInput,
   EnsureModelLabelInput,
   EnsureProviderAccountInput,
+  ListOptions,
   ListModelBindingsFilter,
-  ModelRepository,
   ResolveModelInput,
+  RestoreInput,
   UpsertTenantModelPolicyInput,
-} from "../../domain/repository.js";
+} from "../../application/dto.js";
+import type { ModelRepository } from "../../application/ports.js";
 
 export class PrismaModelRepository implements ModelRepository {
   constructor(private readonly prisma: PrismaClient) {}

@@ -1,6 +1,6 @@
 import { Redis } from "ioredis";
 import type { ResolveModelRequest } from "../../generated/proto/kokoro/model/v1/model_catalog_pb.js";
-import { ModelDependencyError } from "../../domain/model-lifecycle.js";
+import { ModelDependencyError } from "../../domain/errors.js";
 import type { ModelResolveResult, ModelResolver } from "../../interfaces/rpc/service.js";
 
 const namespace = "kokoro:model:resolve:v1";

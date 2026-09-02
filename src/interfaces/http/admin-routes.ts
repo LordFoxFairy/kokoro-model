@@ -1,9 +1,9 @@
 import { jsonSchema, registerAdminManifestRoute, sendData, sendError, sendZodError } from "@kokoro/service-kit";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { ZodError } from "zod";
-import type { ModelBindingStatus, ProviderAccountStatus } from "../../domain/model.js";
-import { isModelLifecycleError } from "../../domain/model-lifecycle.js";
-import type { ModelRepository } from "../../domain/repository.js";
+import type { ModelBindingStatus, ProviderAccountStatus } from "../../domain/enums.js";
+import { isModelLifecycleError } from "../../domain/errors.js";
+import type { ModelRepository } from "../../application/ports.js";
 import { modelAdminManifest } from "../admin/manifest.js";
 import {
   deleteRequestSchema,

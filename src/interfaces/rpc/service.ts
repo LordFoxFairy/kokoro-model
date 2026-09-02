@@ -8,7 +8,7 @@ import {
   ResolveModelResponseSchema,
   type ResolveModelResponse,
 } from "../../generated/proto/kokoro/model/v1/model_catalog_pb.js";
-import { isModelDependencyError } from "../../domain/model-lifecycle.js";
+import { isModelDependencyError } from "../../domain/errors.js";
 
 export interface ModelResolveResult {
   modelRevisionId: string;

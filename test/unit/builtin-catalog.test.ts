@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { ModelService } from "../../src/application/model-service.js";
 import { BUILTIN_CATALOG, seedBuiltinCatalog } from "../../src/bootstrap/builtin-catalog.js";
-import type { ModelBinding, ModelLabel, ProviderAccount } from "../../src/domain/model.js";
+import type { ModelBinding, ModelLabel, ProviderAccount } from "../../src/domain/models.js";
 import type {
   EnsureModelBindingInput,
   EnsureModelLabelInput,
   EnsureProviderAccountInput,
-  ModelRepository,
-} from "../../src/domain/repository.js";
+} from "../../src/application/dto.js";
+import type { ModelRepository } from "../../src/application/ports.js";
 
 const NOW = new Date(0);
 

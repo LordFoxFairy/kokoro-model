@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ModelResolveResult } from "../../src/interfaces/rpc/service.js";
-import { ModelDependencyError } from "../../src/domain/model-lifecycle.js";
+import { ModelDependencyError } from "../../src/domain/errors.js";
 import { PrismaClient } from "../../generated/prisma/index.js";
 import { createModelServer } from "../../src/interfaces/http/server.js";
 import { createTargetHttpServer } from "../../src/interfaces/http/target-server.js";

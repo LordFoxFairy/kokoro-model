@@ -3,29 +3,15 @@ import type {
   EnsureModelLabelInput,
   EnsureProviderAccountInput,
   ListModelBindingsFilter,
-  ModelRepository,
   ResolveModelInput,
   UpsertTenantModelPolicyInput,
-} from "../domain/repository.js";
-import type { DeleteInput, RestoreInput } from "../domain/model-lifecycle.js";
-import type { ModelBinding, ModelLabel } from "../domain/model.js";
+  DeleteInput,
+  RestoreInput,
+  PublicModelCatalogItem,
+} from "./dto.js";
+import type { ModelRepository } from "./ports.js";
+import type { ModelBinding, ModelLabel } from "../domain/models.js";
 import { pageWindow, type PageInput, type PageResult } from "./pagination.js";
-
-export type PublicModelAvailability = "available" | "provider_unavailable" | "unconfigured";
-
-export interface PublicModelCatalogItem {
-  readonly key: string;
-  readonly displayName: string;
-  readonly description: string | null;
-  readonly featureKey: string;
-  readonly tier: string | null;
-  readonly availability: PublicModelAvailability;
-  readonly capabilities: {
-    readonly inputModalities: string[];
-    readonly outputModalities: string[];
-    readonly contextWindow: number | null;
-  };
-}
 
 export class ModelService {
   constructor(private readonly repository: ModelRepository) {}

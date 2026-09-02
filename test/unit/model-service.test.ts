@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { ModelService } from "../../src/application/model-service.js";
-import type { ModelBinding, ModelLabel, ProviderAccount, TenantModelPolicy } from "../../src/domain/model.js";
+import type { ModelBinding, ModelLabel, ProviderAccount, TenantModelPolicy } from "../../src/domain/models.js";
 import type {
   EnsureModelBindingInput,
   EnsureModelLabelInput,
   EnsureProviderAccountInput,
   ListModelBindingsFilter,
-  ModelRepository,
   ResolveModelInput,
   UpsertTenantModelPolicyInput,
-} from "../../src/domain/repository.js";
+} from "../../src/application/dto.js";
+import type { ModelRepository } from "../../src/application/ports.js";
 
 const account: ProviderAccount = {
   id: "pa1",

@@ -10,7 +10,7 @@ import {
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { ZodError } from "zod";
 import type { ModelService } from "../../application/model-service.js";
-import { isModelLifecycleError } from "../../domain/model-lifecycle.js";
+import { isModelLifecycleError } from "../../domain/errors.js";
 import {
   deleteRequestSchema,
   ensureModelBindingRequestSchema,
