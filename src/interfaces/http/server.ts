@@ -29,7 +29,7 @@ export interface CreateModelServerOptions {
   // 入站访问控制配置；不传时从环境读取 per-caller secret，并按 NODE_ENV/KOKORO_ENV 判定生产模式。
   routeAccess?: RouteAccessConfig;
   redis?: Redis;
-  // Production HTTP also carries the compatibility target adapter used by local runtime smoke.
+  // The target resolver is part of the same production HTTP surface used by local runtime smoke.
   resolver?: ModelResolver;
   readinessChecks?: ReadinessChecks;
 }

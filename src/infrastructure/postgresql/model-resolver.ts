@@ -4,7 +4,7 @@ import type { ModelResolveResult } from "../../interfaces/rpc/service.js";
 import { PrismaModelRepository } from "../prisma/prisma-model-repository.js";
 import type { PrismaClient } from "../../../generated/prisma/index.js";
 
-/** PostgreSQL-backed compatibility resolver. The repository owns all model facts. */
+/** PostgreSQL-backed model resolver. The repository owns all model facts. */
 export class PostgreSQLModelResolver {
   private readonly repository: PrismaModelRepository;
 

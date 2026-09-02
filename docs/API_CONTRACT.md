@@ -87,7 +87,7 @@ provider configuration error。
 
 `pnpm start` and the Docker image both start `src/interfaces/http/target-main.ts` from compiled output. This is the single
 production HTTP surface: it exposes readiness, the BFF catalog, the management/admin routes, and the
-pre-existing `/resolve` compatibility adapter. `/resolve` is a `runtime-internal` route and uses the existing
+`/resolve` trusted-context route. `/resolve` is a `runtime-internal` route and uses the existing
 `x-kokoro-service` + `x-kokoro-internal-secret` authentication pattern. The BFF must call the catalog on this same
 listener; it must not assume that `/bff/model-catalog` is served by a separate process.
 

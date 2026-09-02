@@ -1,8 +1,8 @@
-# Compatibility boundary
+# Runtime boundary
 
 `kokoro-model` V1 has one runtime path: PostgreSQL + Redis, exposed through the generated Model RPC and the
 single target HTTP production surface. That HTTP surface includes readiness, the BFF model catalog, and the
-legacy-compatible resolve adapter.
+trusted-context resolve route.
 
 Rules:
 
