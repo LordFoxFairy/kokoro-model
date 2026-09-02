@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const targetFiles = [
   "src/interfaces/http/target-main.ts", "src/interfaces/http/target-server.ts",
+  "src/interfaces/http/production-server.ts",
   "src/interfaces/rpc/main.ts", "src/interfaces/rpc/server.ts", "src/interfaces/rpc/service.ts",
   "src/infrastructure/postgresql/model-resolver.ts", "src/infrastructure/redis/model-cache.ts",
 ];

@@ -1,17 +1,12 @@
 import { createPrismaClient } from "../../infrastructure/prisma/prisma-client.js";
-import { checkPostgreSQL, PostgreSQLModelResolver } from "../../infrastructure/postgresql/model-resolver.js";
-import { checkRedis, createRedisClient, RedisCachedModelResolver } from "../../infrastructure/redis/model-cache.js";
-import { createTargetHttpServer } from "./target-server.js";
+import { checkPostgreSQL } from "../../infrastructure/postgresql/model-resolver.js";
+import { checkRedis, createRedisClient } from "../../infrastructure/redis/model-cache.js";
+import { createProductionHttpServer } from "./production-server.js";
 
 const port = Number(process.env.KOKORO_MODEL_HTTP_PORT ?? process.env.KOKORO_MODEL_PORT ?? "4221");
 const prisma = createPrismaClient();
 const redis = createRedisClient();
-const postgresqlResolver = new PostgreSQLModelResolver(prisma);
-const resolver = new RedisCachedModelResolver(redis, (request) => postgresqlResolver.resolve(request));
-const app = createTargetHttpServer((request) => resolver.resolve(request), {
-  postgresql: () => checkPostgreSQL(prisma),
-  redis: () => checkRedis(redis),
-});
+const app = createProductionHttpServer({ prisma, redis });
 await Promise.all([checkPostgreSQL(prisma), checkRedis(redis)]);
 await app.listen({ host: "0.0.0.0", port });
 console.log(`kokoro-model HTTP listening on ${port}`);

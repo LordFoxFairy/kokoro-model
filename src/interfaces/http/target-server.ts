@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { isModelDependencyError } from "../../domain/model-lifecycle.js";
+import type { FastifyInstance } from "fastify";
 import type { ModelResolver } from "../rpc/service.js";
 
 const resolveRequestSchema = z.object({
@@ -15,22 +16,18 @@ export interface ReadinessChecks {
   redis: () => Promise<void>;
 }
 
-export function createTargetHttpServer(resolver: ModelResolver, checks?: ReadinessChecks) {
-  const app = Fastify({ logger: false });
-  app.get("/healthz", async (request) => ({
-    data: { module: "kokoro-model", status: "ok" },
-    requestId: requestId(request.headers["x-kokoro-request-id"], request.id),
-  }));
+export function registerTargetReadinessRoute(app: FastifyInstance, checks?: ReadinessChecks): void {
   app.get("/readyz", async (request, reply) => {
     const id = requestId(request.headers["x-kokoro-request-id"], request.id);
     if (checks) {
       try {
         await Promise.all([checks.postgresql(), checks.redis()]);
       } catch {
-        return reply.code(503).send({
+        await reply.code(503).send({
           error: { code: "model.dependencies_not_ready", message: "model dependencies are not ready" },
           requestId: id,
         });
+        return;
       }
     }
     return {
@@ -38,6 +35,9 @@ export function createTargetHttpServer(resolver: ModelResolver, checks?: Readine
       requestId: id,
     };
   });
+}
+
+export function registerTargetResolveRoute(app: FastifyInstance, resolver: ModelResolver): void {
   app.post("/resolve", async (request, reply) => {
     const body = request.body as Record<string, unknown> | null;
     const inputRequestId = typeof body?.requestId === "string" ? body.requestId : undefined;
@@ -74,6 +74,16 @@ export function createTargetHttpServer(resolver: ModelResolver, checks?: Readine
       });
     }
   });
+}
+
+export function createTargetHttpServer(resolver: ModelResolver, checks?: ReadinessChecks) {
+  const app = Fastify({ logger: false });
+  app.get("/healthz", async (request) => ({
+    data: { module: "kokoro-model", status: "ok" },
+    requestId: requestId(request.headers["x-kokoro-request-id"], request.id),
+  }));
+  registerTargetReadinessRoute(app, checks);
+  registerTargetResolveRoute(app, resolver);
   return app;
 }
 

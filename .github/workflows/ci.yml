@@ -46,6 +46,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Check production HTTP contract
+        run: pnpm check
       - run: pnpm verify:release
       - run: pnpm db:migrate
       - run: pnpm test:integration

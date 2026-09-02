@@ -1,8 +1,12 @@
 # kokoro-model BFF v1 接入说明
 
 BFF 只通过本仓公开的 generated client/HTTP v1 读取模型目录和可用性，不读取 PostgreSQL 或 Redis。
+production `pnpm start` 和 Docker 镜像都暴露同一个 `GET /bff/model-catalog` owner endpoint；无需配置
+额外的 catalog 进程或端口。
 
 - 请求必须携带可信服务上下文、`request_id` 和租户/站点作用域。
+- HTTP live 请求使用 `x-kokoro-service: web-bff`、`x-kokoro-internal-secret` 和
+  `x-kokoro-tenant-id`；生产入口按 `KOKORO_INTERNAL_SECRET_WEB_BFF` 校验 caller。
 - 列表使用 opaque cursor；BFF 原样传递 `next_cursor`，不自行拼接数据库分页。
 - Model 返回 provider/model 的公开契约和能力声明；BFF 不把 provider secret、内部 endpoint 或 Agent runtime 字段下发到 Web。
 - Agent 通过 Model contract 解析选择结果，实际调用仍由 Agent 执行。

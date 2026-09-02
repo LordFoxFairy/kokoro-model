@@ -75,7 +75,18 @@ Model 只返回可路由的模型元数据，不执行 provider 调用、不返�
 
 调用方必须设置有限 deadline；不允许无限等待。
 
-## 3. HTTP runtime resolve
+## 3. HTTP production entry
+
+`pnpm start` and the Docker image both start `src/interfaces/http/target-main.ts` from compiled output. This is the single
+production HTTP surface: it exposes readiness, the BFF catalog, the management/admin routes, and the
+pre-existing `/resolve` compatibility adapter. The BFF must call the catalog on this same listener; it must
+not assume that `/bff/model-catalog` is served by a separate process.
+
+`GET /readyz` checks PostgreSQL and Redis. In production, the HTTP entry requires the `session`, `admin`, and
+`web-bff` caller secrets at startup. Docker Compose supplies local placeholder values; deployments must inject
+independent secret values through the environment.
+
+## 4. HTTP runtime resolve
 
 ### `POST /resolve`
 
@@ -108,7 +119,7 @@ Model 只返回可路由的模型元数据，不执行 provider 调用、不返�
 或 provider 凭据。`/resolve` 的 body `requestId` 仅用于本次请求校验失败时的回显，正式跨仓链路仍以
 Root RPC 的 `request_id` 为准。
 
-## 4. HTTP management surface
+## 5. HTTP management surface
 
 以下入口只允许内部 Admin Gateway/管理调用方访问，不是 Agent runtime contract：
 
@@ -154,7 +165,7 @@ Root RPC 的 `request_id` 为准。
 
 所有写请求必须通过应用层完成关联、软删除、状态和事务校验；数据库不建立外键。跨表读取使用参数化 SQL JOIN，并限制返回列。
 
-## 5. 生命周期与一致性
+## 6. 生命周期与一致性
 
 - Provider、Label、Routing Policy 使用 `deleted_at/deleted_by/delete_reason` 软删除。
 - Revision 发布后不可修改；变更必须创建新 Revision，再切换 policy。
@@ -170,7 +181,7 @@ Root RPC 的 `request_id` 为准。
   重试相同 payload 返回同一资源，不产生重复记录。管理写入须由 Admin Gateway 以 `admin` caller 进入；
   BFF 只允许 `web-bff` caller 读取 tenant-scoped catalog，session 只允许 runtime-internal 读取。
 
-## 6. 统一错误与权限矩阵
+## 7. 统一错误与权限矩阵
 
 | Surface | caller | tenant 来源 | 失败语义 |
 |---|---|---|---|
@@ -183,7 +194,7 @@ Model 不导入 IAM、Agent、Credit 或 Billing 的实现，也不把 request b
 `x-kokoro-service` 和对应 per-caller secret 是服务间身份；生产缺少 `session`、`admin` 或 `web-bff`
 凭据时启动失败。
 
-## 7. 生成与验证
+## 8. 生成与验证
 
 修改 RPC 必须修改 Root `.proto`，然后执行：
 
@@ -196,7 +207,7 @@ pnpm verify:release
 
 禁止手工修改 `src/generated/`；生成物、contract provenance 和 consumer 清单必须一致。
 
-## 8. 初始模型目录
+## 9. 初始模型目录
 
 `database/70-model.init.postgresql.sql` 是 OpenRouter 公共 Models API 的幂等快照 materialization，当前包含 395 个标准模型 ID，例如
 `openai/gpt-4o-mini`、`anthropic/claude-sonnet-4.6`、`google/gemini-2.5-pro`、`deepseek/deepseek-chat` 和 `qwen/qwen3-30b-a3b`。

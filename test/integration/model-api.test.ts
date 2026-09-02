@@ -106,6 +106,49 @@ describe("model HTTP API", () => {
     ]);
   });
 
+  it("serves the tenant-scoped BFF model catalog from the HTTP API", async () => {
+    const accountId = await createProviderAccount("openai", "catalog");
+    await createBinding(accountId, "gpt-4o", 10);
+
+    const labelResponse = await app.inject({
+      method: "POST",
+      url: "/model-labels/ensure",
+      payload: {
+        key: "chat.default",
+        displayName: "Kokoro Default",
+        description: "Default chat model",
+        featureKey: "chat",
+        tier: "standard",
+      },
+    });
+    expect(labelResponse.statusCode).toBe(200);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/bff/model-catalog?featureKey=chat&limit=10",
+      headers: {
+        "x-kokoro-tenant-id": "tenant-catalog",
+        "x-kokoro-request-id": "catalog-request",
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      data: {
+        items: [
+          {
+            key: "chat.default",
+            displayName: "Kokoro Default",
+            featureKey: "chat",
+            availability: "available",
+            capabilities: { inputModalities: ["text"], outputModalities: ["text"], contextWindow: null },
+          },
+        ],
+      },
+      meta: { request_id: "catalog-request" },
+    });
+  });
+
   it("deletes and restores provider accounts through HTTP lifecycle routes", async () => {
     const accountId = await createProviderAccount("openai", "delete_provider");
     await createBinding(accountId, "gpt-4o", 10);

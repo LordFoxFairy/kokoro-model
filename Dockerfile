@@ -23,6 +23,9 @@ FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 RUN corepack enable && corepack prepare pnpm@11.2.2 --activate
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --from=build /app/packages/service-kit/package.json ./packages/service-kit/package.json
@@ -34,4 +37,4 @@ COPY --from=build /app/generated ./dist/generated
 
 USER node
 EXPOSE 4221 4222
-CMD ["node", "dist/src/interfaces/http/target-main.js"]
+CMD ["node", "--conditions=production", "dist/src/interfaces/http/target-main.js"]

@@ -45,7 +45,7 @@ pnpm build
 docker compose up --build
 ```
 
-本地开发也可以只启动组合：`docker compose up --build`。HTTP target 与 RPC 是两个独立进程，
+本地开发也可以只启动组合：`docker compose up --build`。HTTP target 与 RPC 是两个独立进程，HTTP production target 同时提供目录与兼容解析入口，
 分别使用 `pnpm http:dev` 和 `pnpm rpc:dev`；启动前必须提供 PostgreSQL 的
 `DATABASE_URL_MODEL` 和 Redis 的 `KOKORO_REDIS_URL`。不在仓库 `.env` 中保存真实 provider key，
 Provider 目录只记录 `secretRef`。
@@ -55,12 +55,15 @@ Provider 目录只记录 `secretRef`。
 - PostgreSQL: `55432`
 - Redis: `56379`
 - `/readyz` 必须同时通过 PostgreSQL `SELECT 1` 和 Redis `PING`
+- production HTTP：`GET /bff/model-catalog`（BFF tenant catalog）与 `POST /resolve`（兼容解析）由同一个监听器提供
 
 初始化目录：先执行 migration，再执行 `database/70-model.init.postgresql.sql`。OpenRouter 快照项默认
 `disabled`，必须先在 LiteLLM model_list 部署同名 gateway route，再按环境显式启用；这样不会把“目录存在”误当成“路由已可用”。
 `claude-code` 与 `kokoro-dev-mock` 仍由本地 builtin catalog 管理，不冒充 OpenRouter 标准模型 ID。
 
-Docker image uses the compiled HTTP production entry `node dist/src/interfaces/http/target-main.js`.
+Docker image and `pnpm start` use the compiled HTTP production entry `node --conditions=production dist/src/interfaces/http/target-main.js`.
+That entry composes the full Model HTTP API, including `GET /bff/model-catalog`, `GET /readyz`, and the
+backward-compatible `POST /resolve` route.
 The compose migration job uses the build stage for the Prisma CLI; HTTP and RPC services run the compiled
 `pnpm start` and `pnpm start:rpc` entries. PostgreSQL and Redis remain the only runtime data boundaries.
 
@@ -77,7 +80,9 @@ interfaces -> application -> domain -> infrastructure/postgresql + infrastructur
 ## Verification and acceptance
 
 ```bash
-pnpm test
+pnpm check
+pnpm test:contract
+pnpm test:integration
 pnpm typecheck
 pnpm lint
 pnpm build

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ModelResolveResult } from "../../src/interfaces/rpc/service.js";
 import { ModelDependencyError } from "../../src/domain/model-lifecycle.js";
+import { PrismaClient } from "../../generated/prisma/index.js";
+import { createModelServer } from "../../src/interfaces/http/server.js";
 import { createTargetHttpServer } from "../../src/interfaces/http/target-server.js";
 
 const result: ModelResolveResult = {
@@ -14,6 +16,31 @@ const result: ModelResolveResult = {
 };
 
 describe("target PostgreSQL + Redis HTTP boundary", () => {
+  it("composes the production HTTP server with both catalog and resolve routes", async () => {
+    const prisma = new PrismaClient({ datasources: { db: { url: "file:./production-http-test.db" } } });
+    const app = createModelServer({
+      prisma,
+      resolver: async () => result,
+      readinessChecks: { postgresql: async () => undefined, redis: async () => undefined },
+    });
+
+    const ready = await app.inject({ method: "GET", url: "/readyz" });
+    const catalog = await app.inject({ method: "GET", url: "/bff/model-catalog" });
+    const response = await app.inject({
+      method: "POST",
+      url: "/resolve",
+      payload: { requestId: "request-1", tenantId: result.modelRevisionId, label: "default" },
+    });
+
+    expect(ready.statusCode).toBe(200);
+    expect(catalog.statusCode).toBe(400);
+    expect(catalog.json().error.code).toBe("model.tenant_required");
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data.modelRevisionId).toBe(result.modelRevisionId);
+    await app.close();
+    await prisma.$disconnect();
+  });
+
   it("exposes health and resolve over the local HTTP surface", async () => {
     const app = createTargetHttpServer(async () => result);
     const health = await app.inject({ method: "GET", url: "/healthz" });

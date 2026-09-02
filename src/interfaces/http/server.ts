@@ -5,6 +5,8 @@ import {
   registerRouteAccess,
   type RouteAccessConfig,
   type ServiceCaller,
+  isProductionEnv,
+  loadCallerSecrets,
 } from "@kokoro/service-kit";
 import type { PrismaClient } from "../../../generated/prisma/index.js";
 import Fastify from "fastify";
@@ -15,12 +17,21 @@ import { createRedisClient, withRedisInvalidation } from "../../infrastructure/r
 import type { Redis } from "ioredis";
 import { registerModelAdminRoutes } from "./admin-routes.js";
 import { registerModelRoutes } from "./routes.js";
+import {
+  registerTargetReadinessRoute,
+  registerTargetResolveRoute,
+  type ReadinessChecks,
+} from "./target-server.js";
+import type { ModelResolver } from "../rpc/service.js";
 
 export interface CreateModelServerOptions {
   prisma?: PrismaClient;
-  // 入站访问控制配置；不传=空 secret + 非生产=dev 直通（测试/本地）；生产由 main.ts 注入 per-caller secret。
+  // 入站访问控制配置；不传时从环境读取 per-caller secret，并按 NODE_ENV/KOKORO_ENV 判定生产模式。
   routeAccess?: RouteAccessConfig;
   redis?: Redis;
+  // Production HTTP also carries the compatibility target adapter used by local runtime smoke.
+  resolver?: ModelResolver;
+  readinessChecks?: ReadinessChecks;
 }
 
 // model 所需 caller 凭据：session(model-bindings/resolve 可用性权威) + admin(网关) 入站。model 无出站。
@@ -35,7 +46,7 @@ export function createModelServer(options: CreateModelServerOptions = {}) {
   registerOpenApi(app, { title: "Kokoro Model API", version: "0.1.0" });
 
   // 服务间被调面：default-internal。/healthz 公开；/admin 仅 admin 网关；provider-accounts/model-bindings 归 runtime-internal。
-  const ra = options.routeAccess ?? { secrets: {}, isProduction: false };
+  const ra = options.routeAccess ?? { secrets: loadCallerSecrets(), isProduction: isProductionEnv() };
   registerRouteAccess(app, { ...ra, requiredCallers: MODEL_REQUIRED_CALLERS });
   declareRouteAccess(app, { path: "/healthz", exact: true }, "public");
   declareRouteAccess(app, { path: "/metrics", exact: true }, "public");
@@ -45,6 +56,11 @@ export function createModelServer(options: CreateModelServerOptions = {}) {
   declareRouteAccess(app, "/model-labels", "runtime-internal");
   declareRouteAccess(app, "/bff/model-catalog", "web-bff");
   declareRouteAccess(app, "/docs", "runtime-internal");
+  if (options.resolver !== undefined) {
+    declareRouteAccess(app, { path: "/readyz", exact: true }, "public");
+    // Keep the pre-existing target adapter contract: /resolve is a local HTTP compatibility surface.
+    declareRouteAccess(app, { path: "/resolve", exact: true }, "public");
+  }
   registerErrorHandler(app);
 
   const prisma = options.prisma ?? createPrismaClient();
@@ -56,6 +72,10 @@ export function createModelServer(options: CreateModelServerOptions = {}) {
 
   // WHY: 路由须包进异步 plugin，确保在 swagger(void register 入队)之后加载，否则 onRoute 漏采 → /docs/json paths 为空。
   void app.register(async (instance) => {
+    if (options.resolver !== undefined) {
+      registerTargetReadinessRoute(instance, options.readinessChecks);
+      registerTargetResolveRoute(instance, options.resolver);
+    }
     registerModelRoutes(instance, service);
     registerModelAdminRoutes(instance, repository);
   });
