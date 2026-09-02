@@ -1,6 +1,6 @@
 # kokoro-model
 
-`kokoro-model` 是模型目录与路由解析服务：根据 `tenant_id + label` 选择当前可用的模型 Revision，返回 Provider、模型名、transport、路由 generation 和 digest。它不执行模型生成、不处理 prompt、不扣费，也不保存 provider 明文密钥。
+`kokoro-model` 是独立的模型目录与路由解析服务：根据 `tenant_id + label` 选择当前可用的模型 Revision，返回 Provider、模型名、transport、路由 generation 和 digest。它不执行模型生成、不处理 prompt、不扣费，也不保存 provider 明文密钥；LiteLLM 只是可选的外部执行 gateway，不是 Model 的启动依赖。
 
 ## V1 owner
 
@@ -57,15 +57,16 @@ Provider 目录只记录 `secretRef`。
 - `/readyz` 必须同时通过 PostgreSQL `SELECT 1` 和 Redis `PING`
 - production HTTP：`GET /bff/model-catalog`（BFF tenant catalog）与 `POST /resolve`（兼容解析）由同一个监听器提供
 
-初始化目录：先执行 migration，再执行 `database/70-model.init.postgresql.sql`。OpenRouter 快照项默认
-`disabled`，必须先在 LiteLLM model_list 部署同名 gateway route，再按环境显式启用；这样不会把“目录存在”误当成“路由已可用”。
+初始化目录：先执行 migration，再按环境决定是否执行 `database/70-model.init.postgresql.sql` 和 builtin seed。OpenRouter 快照项默认
+`disabled`，选择 `litellm` transport 时必须先在外部 LiteLLM model_list 部署同名 gateway route，再按环境显式启用；不使用 LiteLLM 的本地 profile 可以只运行 Model 的 catalog/resolve，不执行 LiteLLM seed，也不会影响 `/readyz`。
 `claude-code` 与 `kokoro-dev-mock` 仍由本地 builtin catalog 管理，不冒充 OpenRouter 标准模型 ID。
 
 Docker image and `pnpm start` use the compiled HTTP production entry `node --conditions=production dist/src/interfaces/http/target-main.js`.
 That entry composes the full Model HTTP API, including `GET /bff/model-catalog`, `GET /readyz`, and the
 backward-compatible `POST /resolve` route.
 The compose migration job uses the build stage for the Prisma CLI; HTTP and RPC services run the compiled
-`pnpm start` and `pnpm start:rpc` entries. PostgreSQL and Redis remain the only runtime data boundaries.
+`pnpm start` and `pnpm start:rpc` entries. PostgreSQL and Redis remain the only runtime data boundaries;
+LiteLLM is not part of this repository image or process.
 
 ## Architecture
 

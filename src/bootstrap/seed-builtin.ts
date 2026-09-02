@@ -1,5 +1,5 @@
 // 内置目录 seed 入口（`pnpm run seed:builtin`）：连库 → service → 幂等落地平台内置默认目录。
-// 任何环境（dev/prod）都跑这一个入口取得一致内置目录；编排层不再各自硬编码定义。
+// 这是显式的管理/发布动作，不是服务启动钩子；本地 fast profile 不使用 LiteLLM 时不需要执行。
 import { ModelService } from "../application/model-service.js";
 import { PrismaModelRepository } from "../infrastructure/prisma/prisma-model-repository.js";
 import { createPrismaClient } from "../infrastructure/prisma/prisma-client.js";

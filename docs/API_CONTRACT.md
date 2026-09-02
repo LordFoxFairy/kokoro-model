@@ -6,7 +6,7 @@
 
 Model 是 Kokoro 的**模型目录与路由决策服务**：把产品能力请求中的 `label`，在受信
 `tenant_id` 上下文中解析成当前可执行的 `model_revision`、Provider、transport 和路由版本。
-它让 Agent/Session 不需要知道 Provider 目录、LiteLLM 别名、健康状态或租户可见性规则，
+它让 Agent/BFF 不需要知道 Provider 目录、LiteLLM 别名、健康状态或租户可见性规则，
 同时让 Billing/Credit 与模型选择解耦。Model 不执行模型调用，也不承担任务编排；Manus API
 中的任务异步生命周期、Project、Webhook 和 Structured Output 是可借鉴的契约思想，不属于
 Model 的 owner 边界。
@@ -26,7 +26,15 @@ Model 的 owner 边界。
 
 Model 只返回可路由的模型元数据，不执行 provider 调用、不返回 secret、不判断余额、不扣费。
 
-## 2. RPC contract
+## 2. LiteLLM optional boundary
+
+`transport=MODEL_TRANSPORT_LITELLM` 只表示“该 revision 需要一个外部 LiteLLM/OpenAI-compatible
+route”。Model 的 `/readyz`、catalog 和 `ResolveModel` 不会连接、探活或启动该 gateway；没有
+LiteLLM 时仍可独立启动 Model 并解析非 LiteLLM route/目录。Agent 只有在
+`KOKORO_LITELLM_ENABLED=1` 且具备 gateway URL/key 时才执行 LiteLLM route，缺配置返回明确的
+provider configuration error。
+
+## 3. RPC contract
 
 权威源：`contract/proto/kokoro/model/v1/model_catalog.proto`
 
@@ -75,7 +83,7 @@ Model 只返回可路由的模型元数据，不执行 provider 调用、不返�
 
 调用方必须设置有限 deadline；不允许无限等待。
 
-## 3. HTTP production entry
+## 4. HTTP production entry
 
 `pnpm start` and the Docker image both start `src/interfaces/http/target-main.ts` from compiled output. This is the single
 production HTTP surface: it exposes readiness, the BFF catalog, the management/admin routes, and the
@@ -86,7 +94,7 @@ not assume that `/bff/model-catalog` is served by a separate process.
 `web-bff` caller secrets at startup. Docker Compose supplies local placeholder values; deployments must inject
 independent secret values through the environment.
 
-## 4. HTTP runtime resolve
+## 5. HTTP runtime resolve
 
 ### `POST /resolve`
 

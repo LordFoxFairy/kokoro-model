@@ -53,7 +53,7 @@ src/
 
 ## 关键边界
 
-- LiteLLM 是 `adapters/` 的 provider/gateway 实现，不是 Model domain。
+- LiteLLM 是可选的外部 `adapters/` provider/gateway 实现，不是 Model domain，也不是 Model 的启动依赖；Model 只保存 transport/route metadata。
 - `ResolveModel` 只返回一个已发布、可用的解析结果和 routing generation/digest，不决定最终扣费，
   不启动 Agent，也不返回 provider secret。
 - 解析排序必须由 `(tenant_id, label, priority, stable model revision key)` 决定；V1 取第一条，
@@ -91,7 +91,7 @@ adapters -> application ports（不得反向污染 domain）
 - provider payload 与 domain 类型隔离。
 - Model 不直接访问 Credit 或 Payment 表。
 - contract consumer 与生成目录一致。
-- published revision 不可变、active route 只能指向已发布 LiteLLM revision。
+- published revision 不可变、active route 只能指向已发布 revision；若 transport 为 `litellm`，执行方必须在自己的 profile 中提供外部 gateway，Model 不负责探活或拉起它。
 - 设计审计能区分PostgreSQL DDL、Prisma schema 与 Repository。
 
 

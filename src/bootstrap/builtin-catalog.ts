@@ -1,7 +1,8 @@
 // 平台内置默认模型目录（单一真源，ADR：模型/provider/绑定/标签权威归 kokoro-model）。
-// 「内置默认 model 全功能共享」——对外统一 claude-code 门面，经 litellm 网关路由到内部真后端
-// （dev=GLM/假模型，可在网关侧换后端而不动此声明）。任何环境（dev closure-up / 生产部署）都调
-// seedBuiltinCatalog 取得一致的内置目录，编排层不再各自硬编码定义。
+// 「内置默认 model 全功能共享」——对外统一 claude-code 门面，默认声明为 litellm route。
+// 这只是目录/路由元数据；Model 不调用或启动 LiteLLM。选择此 binding 的执行 profile 必须
+// 另外启用外部 OpenAI-compatible gateway；本地不需要 LiteLLM 时不要 seed/启用此 route。
+// 生产和本地都通过 seedBuiltinCatalog 取得一致目录，编排层不再各自硬编码定义。
 //
 // 注意：这里只声明「平台内置默认」这一档；dev-only 的离线假模型（kokoro-dev-mock）属编排层
 // dev 便利，不进平台内置目录（生产不该出现「Dev Mock」标签）。
@@ -9,7 +10,7 @@
 import type { ModelService } from "../application/model-service.js";
 import type { ModelLabel } from "../domain/model.js";
 
-// 网关 provider 账号：litellm 传输，凭据只存 env 引用（明文不入库，ADR-010）。
+// 可选网关 provider 账号：litellm 传输，凭据只存 env 引用（明文不入库，ADR-010）。
 const BUILTIN_PROVIDER = {
   provider: "litellm",
   key: "gateway",
