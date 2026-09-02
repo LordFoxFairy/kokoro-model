@@ -1,7 +1,6 @@
 import Fastify from "fastify";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { readRequestContext } from "@kokoro/service-kit";
 import { isModelDependencyError } from "../../domain/model-lifecycle.js";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import type { ModelResolver } from "../rpc/service.js";
@@ -41,17 +40,17 @@ export function registerTargetResolveRoute(app: FastifyInstance, resolver: Model
   app.post("/resolve", async (request, reply) => {
     const body = request.body as Record<string, unknown> | null;
     const inputRequestId = typeof body?.requestId === "string" ? body.requestId : undefined;
-    const context = readRequestContext(request.headers);
-    const id = inputRequestId ?? context.requestId;
+    const tenantId = headerValue(request.headers["x-kokoro-tenant-id"]);
+    const id = inputRequestId ?? requestId(request.headers["x-kokoro-request-id"], request.id);
     try {
-      if (context.tenantId === null || context.tenantId.length === 0) {
+      if (tenantId === null) {
         return reply.code(400).send({
           error: { code: "model.tenant_required", message: "tenant context is required" },
           meta: { request_id: id },
         });
       }
       const input = trustedResolveRequestSchema.parse(request.body);
-      const response = await resolveTarget(reply, resolver, { ...input, tenantId: context.tenantId }, id);
+      const response = await resolveTarget(reply, resolver, { ...input, tenantId }, id);
       return response;
     } catch (error) {
       return resolveTargetError(reply, error, id);
@@ -112,4 +111,9 @@ function requestId(value: string | string[] | undefined, fallback: string): stri
   if (typeof value === "string" && value.length > 0) return value;
   if (Array.isArray(value) && value[0]) return value[0];
   return fallback || randomUUID();
+}
+
+function headerValue(value: string | string[] | undefined): string | null {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return candidate?.trim() || null;
 }
