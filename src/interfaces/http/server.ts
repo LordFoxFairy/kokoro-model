@@ -58,8 +58,8 @@ export function createModelServer(options: CreateModelServerOptions = {}) {
   declareRouteAccess(app, "/docs", "runtime-internal");
   if (options.resolver !== undefined) {
     declareRouteAccess(app, { path: "/readyz", exact: true }, "public");
-    // Keep the pre-existing target adapter contract: /resolve is a local HTTP compatibility surface.
-    declareRouteAccess(app, { path: "/resolve", exact: true }, "public");
+    // Production /resolve is an internal adapter; the body must not establish tenant ownership.
+    declareRouteAccess(app, { path: "/resolve", exact: true }, "runtime-internal");
   }
   registerErrorHandler(app);
 

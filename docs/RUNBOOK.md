@@ -23,7 +23,10 @@ curl -fsS \
   http://127.0.0.1:4221/bff/model-catalog
 
 curl -fsS -X POST -H 'content-type: application/json' \
-  -d '{"requestId":"TARGET","tenantId":"00000000-0000-0000-0000-000000000001","label":"TARGET"}' \
+  -H 'x-kokoro-service: session' \
+  -H 'x-kokoro-internal-secret: TARGET' \
+  -H 'x-kokoro-tenant-id: TARGET' \
+  -d '{"requestId":"TARGET","label":"TARGET"}' \
   http://127.0.0.1:4221/resolve
 ```
 

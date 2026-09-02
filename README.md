@@ -55,7 +55,7 @@ Provider 目录只记录 `secretRef`。
 - PostgreSQL: `55432`
 - Redis: `56379`
 - `/readyz` 必须同时通过 PostgreSQL `SELECT 1` 和 Redis `PING`
-- production HTTP：`GET /bff/model-catalog`（BFF tenant catalog）与 `POST /resolve`（兼容解析）由同一个监听器提供
+- production HTTP：`GET /bff/model-catalog`（BFF tenant catalog）与受内部认证保护的 `POST /resolve`（兼容解析）由同一个监听器提供
 
 初始化目录：先执行 migration，再按环境决定是否执行 `database/70-model.init.postgresql.sql` 和 builtin seed。OpenRouter 快照项默认
 `disabled`，选择 `litellm` transport 时必须先在外部 LiteLLM model_list 部署同名 gateway route，再按环境显式启用；不使用 LiteLLM 的本地 profile 可以只运行 Model 的 catalog/resolve，不执行 LiteLLM seed，也不会影响 `/readyz`。
@@ -64,6 +64,12 @@ Provider 目录只记录 `secretRef`。
 Docker image and `pnpm start` use the compiled HTTP production entry `node --conditions=production dist/src/interfaces/http/target-main.js`.
 That entry composes the full Model HTTP API, including `GET /bff/model-catalog`, `GET /readyz`, and the
 backward-compatible `POST /resolve` route.
+
+Production `/resolve` is a `runtime-internal` route: callers must send the existing
+`x-kokoro-service` + `x-kokoro-internal-secret` pair, and the tenant must come from
+`x-kokoro-tenant-id`. The body `tenantId` field is not accepted on this formal route.
+The standalone `createTargetHttpServer` remains a local fixture for the legacy body-
+tenant shape; it is not a production owner API.
 The compose migration job uses the build stage for the Prisma CLI; HTTP and RPC services run the compiled
 `pnpm start` and `pnpm start:rpc` entries. PostgreSQL and Redis remain the only runtime data boundaries;
 LiteLLM is not part of this repository image or process.

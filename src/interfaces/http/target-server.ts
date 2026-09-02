@@ -1,11 +1,17 @@
 import Fastify from "fastify";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { readRequestContext } from "@kokoro/service-kit";
 import { isModelDependencyError } from "../../domain/model-lifecycle.js";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply } from "fastify";
 import type { ModelResolver } from "../rpc/service.js";
 
-const resolveRequestSchema = z.object({
+const trustedResolveRequestSchema = z.object({
+  requestId: z.string().min(1),
+  label: z.string().min(1),
+}).strict();
+
+const fixtureResolveRequestSchema = z.object({
   requestId: z.string().min(1),
   tenantId: z.string().uuid(),
   label: z.string().min(1),
@@ -25,14 +31,14 @@ export function registerTargetReadinessRoute(app: FastifyInstance, checks?: Read
       } catch {
         await reply.code(503).send({
           error: { code: "model.dependencies_not_ready", message: "model dependencies are not ready" },
-          requestId: id,
+          meta: { request_id: id },
         });
         return;
       }
     }
     return {
       data: { module: "kokoro-model", status: "ready", dependencies: { postgresql: "ok", redis: "ok" } },
-      requestId: id,
+      meta: { request_id: id },
     };
   });
 }
@@ -41,37 +47,20 @@ export function registerTargetResolveRoute(app: FastifyInstance, resolver: Model
   app.post("/resolve", async (request, reply) => {
     const body = request.body as Record<string, unknown> | null;
     const inputRequestId = typeof body?.requestId === "string" ? body.requestId : undefined;
-    const id = inputRequestId ?? requestId(request.headers["x-kokoro-request-id"], request.id);
+    const context = readRequestContext(request.headers);
+    const id = inputRequestId ?? context.requestId;
     try {
-      const input = resolveRequestSchema.parse(request.body);
-      const result = await resolver(input);
-      if (!result) {
-        return reply.code(404).send({
-          error: { code: "model.route_not_found", message: "no model route matched" },
-          requestId: id,
-        });
-      }
-      return {
-        data: { ...result, routingPolicyGeneration: result.routingPolicyGeneration.toString() },
-        requestId: id,
-      };
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (context.tenantId === null || context.tenantId.length === 0) {
         return reply.code(400).send({
-          error: { code: "request.invalid", message: "request is invalid", details: error.issues },
-          requestId: id,
+          error: { code: "model.tenant_required", message: "tenant context is required" },
+          meta: { request_id: id },
         });
       }
-      if (isModelDependencyError(error)) {
-        return reply.code(503).send({
-          error: { code: error.code, message: "model dependencies are unavailable" },
-          requestId: id,
-        });
-      }
-      return reply.code(500).send({
-        error: { code: "internal.error", message: "internal error" },
-        requestId: id,
-      });
+      const input = trustedResolveRequestSchema.parse(request.body);
+      const response = await resolveTarget(reply, resolver, { ...input, tenantId: context.tenantId }, id);
+      return response;
+    } catch (error) {
+      return resolveTargetError(reply, error, id);
     }
   });
 }
@@ -80,11 +69,65 @@ export function createTargetHttpServer(resolver: ModelResolver, checks?: Readine
   const app = Fastify({ logger: false });
   app.get("/healthz", async (request) => ({
     data: { module: "kokoro-model", status: "ok" },
-    requestId: requestId(request.headers["x-kokoro-request-id"], request.id),
+    meta: { request_id: requestId(request.headers["x-kokoro-request-id"], request.id) },
   }));
   registerTargetReadinessRoute(app, checks);
-  registerTargetResolveRoute(app, resolver);
+  // This standalone server is a local fixture and intentionally keeps the legacy body tenantId shape.
+  registerFixtureResolveRoute(app, resolver);
   return app;
+}
+
+function registerFixtureResolveRoute(app: FastifyInstance, resolver: ModelResolver): void {
+  app.post("/resolve", async (request, reply) => {
+    const body = request.body as Record<string, unknown> | null;
+    const inputRequestId = typeof body?.requestId === "string" ? body.requestId : undefined;
+    const id = inputRequestId ?? requestId(request.headers["x-kokoro-request-id"], request.id);
+    try {
+      const input = fixtureResolveRequestSchema.parse(request.body);
+      const response = await resolveTarget(reply, resolver, input, id);
+      return response;
+    } catch (error) {
+      return resolveTargetError(reply, error, id);
+    }
+  });
+}
+
+async function resolveTarget(
+  reply: FastifyReply,
+  resolver: ModelResolver,
+  input: { requestId: string; tenantId: string; label: string },
+  id: string,
+) {
+  const result = await resolver(input);
+  if (!result) {
+    return reply.code(404).send({
+      error: { code: "model.route_not_found", message: "no model route matched" },
+      meta: { request_id: id },
+    });
+  }
+  return reply.send({
+    data: { ...result, routingPolicyGeneration: result.routingPolicyGeneration.toString() },
+    meta: { request_id: id },
+  });
+}
+
+function resolveTargetError(reply: FastifyReply, error: unknown, id: string) {
+  if (error instanceof z.ZodError) {
+    return reply.code(400).send({
+      error: { code: "request.invalid", message: "request is invalid", details: error.issues },
+      meta: { request_id: id },
+    });
+  }
+  if (isModelDependencyError(error)) {
+    return reply.code(503).send({
+      error: { code: error.code, message: "model dependencies are unavailable" },
+      meta: { request_id: id },
+    });
+  }
+  return reply.code(500).send({
+    error: { code: "internal.error", message: "internal error" },
+    meta: { request_id: id },
+  });
 }
 
 function requestId(value: string | string[] | undefined, fallback: string): string {

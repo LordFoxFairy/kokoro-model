@@ -28,7 +28,10 @@ test "$catalog_status" = 200
 
 resolve_status=$(curl --silent --show-error --output /dev/null --write-out "%{http_code}" \
   -X POST -H "content-type: application/json" \
-  -d '{"requestId":"smoke-resolve","tenantId":"00000000-0000-0000-0000-000000000001","label":"missing"}' \
+  -H "x-kokoro-service: session" \
+  -H "x-kokoro-internal-secret: kokoro-local-session" \
+  -H "x-kokoro-tenant-id: 00000000-0000-0000-0000-000000000001" \
+  -d '{"requestId":"smoke-resolve","label":"missing"}' \
   http://127.0.0.1:4221/resolve)
 test "$resolve_status" = 404
 

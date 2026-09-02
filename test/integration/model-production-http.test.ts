@@ -63,7 +63,12 @@ describe("compiled production HTTP composition", () => {
     const resolved = await app.inject({
       method: "POST",
       url: "/resolve",
-      payload: { requestId: "production-resolve", tenantId, label: "chat.default" },
+      headers: {
+        "x-kokoro-service": "session",
+        "x-kokoro-internal-secret": "kokoro-local-session",
+        "x-kokoro-tenant-id": tenantId,
+      },
+      payload: { requestId: "production-resolve", label: "chat.default" },
     });
 
     expect(catalog.statusCode).toBe(200);

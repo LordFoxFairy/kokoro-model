@@ -87,8 +87,9 @@ provider configuration error。
 
 `pnpm start` and the Docker image both start `src/interfaces/http/target-main.ts` from compiled output. This is the single
 production HTTP surface: it exposes readiness, the BFF catalog, the management/admin routes, and the
-pre-existing `/resolve` compatibility adapter. The BFF must call the catalog on this same listener; it must
-not assume that `/bff/model-catalog` is served by a separate process.
+pre-existing `/resolve` compatibility adapter. `/resolve` is a `runtime-internal` route and uses the existing
+`x-kokoro-service` + `x-kokoro-internal-secret` authentication pattern. The BFF must call the catalog on this same
+listener; it must not assume that `/bff/model-catalog` is served by a separate process.
 
 `GET /readyz` checks PostgreSQL and Redis. In production, the HTTP entry requires the `session`, `admin`, and
 `web-bff` caller secrets at startup. Docker Compose supplies local placeholder values; deployments must inject
@@ -103,13 +104,16 @@ independent secret values through the environment.
 ```json
 {
   "requestId": "req_01",
-  "tenantId": "tenant_01",
   "label": "default"
 }
 ```
 
-本地 target HTTP 适配器要求 `tenantId` 为 UUID；生产调用必须由 BFF/内部受信入口构建租户
-上下文，浏览器字段不能作为授权依据。跨服务正式调用优先使用下方 RPC。
+生产 `/resolve` 要求 `x-kokoro-tenant-id` 作为可信内部上下文，并拒绝 body 中的 `tenantId`；
+调用方还必须通过 `x-kokoro-service` 和对应的 `x-kokoro-internal-secret`。浏览器字段不能作为授权依据。
+跨服务正式调用优先使用下方 RPC。
+
+`createTargetHttpServer` 是本地 fixture/兼容入口，保留 `{ requestId, tenantId, label }` 的旧 body
+形状，且不代表 production owner API。该入口只用于本地 target HTTP 测试与 smoke fixture。
 
 成功响应为 `{ "data": ResolveModelResponse }`；无匹配路由返回 HTTP `404` 和：
 
@@ -194,6 +198,7 @@ Root RPC 的 `request_id` 为准。
 | Surface | caller | tenant 来源 | 失败语义 |
 |---|---|---|---|
 | Root Resolve RPC | Agent/受信 runtime | RPC `tenant_id` | `InvalidArgument` / `NotFound` / `Unavailable` / `Internal` |
+| `POST /resolve` | session 等 runtime-internal | `x-kokoro-tenant-id`；body `tenantId` 被拒绝 | 未认证 `401`；缺 tenant `400 model.tenant_required`；统一 HTTP error envelope |
 | `/model-bindings/resolve` | session 等 runtime-internal | `x-kokoro-tenant-id`，缺省仅限内部预览 | 统一 HTTP error envelope |
 | `/bff/model-catalog` | web-bff | 必须有 `x-kokoro-tenant-id` | 缺 tenant 为 `400 model.tenant_required` |
 | `/admin/models/*` | admin | 管理 gateway 的授权上下文 | route-access 先认证 caller，再由 manifest permission 做操作授权 |

@@ -29,7 +29,8 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     const response = await app.inject({
       method: "POST",
       url: "/resolve",
-      payload: { requestId: "request-1", tenantId: result.modelRevisionId, label: "default" },
+      headers: { "x-kokoro-tenant-id": result.modelRevisionId },
+      payload: { requestId: "request-1", label: "default" },
     });
 
     expect(ready.statusCode).toBe(200);
@@ -39,6 +40,68 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     expect(response.json().data.modelRevisionId).toBe(result.modelRevisionId);
     await app.close();
     await prisma.$disconnect();
+  });
+
+  it("rejects unauthenticated /resolve requests before body tenantId can act as owner context", async () => {
+    const app = createModelServer({
+      prisma: new PrismaClient({ datasources: { db: { url: "file:./resolve-auth-test.db" } } }),
+      resolver: async () => result,
+      routeAccess: { secrets: { session: "sec-session" }, isProduction: false },
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/resolve",
+      payload: { requestId: "request-unauthenticated", tenantId: result.modelRevisionId, label: "default" },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json().error.code).toBe("internal.unauthorized");
+    await app.close();
+  });
+
+  it("uses the trusted tenant context and rejects body tenantId on the formal route", async () => {
+    const app = createModelServer({
+      prisma: new PrismaClient({ datasources: { db: { url: "file:./resolve-context-test.db" } } }),
+      resolver: async (request) => ({ ...result, modelRevisionId: request.tenantId }),
+      routeAccess: { secrets: { session: "sec-session" }, isProduction: false },
+    });
+
+    const missingContext = await app.inject({
+      method: "POST",
+      url: "/resolve",
+      headers: { "x-kokoro-service": "session", "x-kokoro-internal-secret": "sec-session" },
+      payload: { requestId: "request-body-tenant", tenantId: result.modelRevisionId, label: "default" },
+    });
+    expect(missingContext.statusCode).toBe(400);
+    expect(missingContext.json().error.code).toBe("model.tenant_required");
+
+    const contextResponse = await app.inject({
+      method: "POST",
+      url: "/resolve",
+      headers: {
+        "x-kokoro-service": "session",
+        "x-kokoro-internal-secret": "sec-session",
+        "x-kokoro-tenant-id": result.providerId,
+      },
+      payload: { requestId: "request-context-tenant", label: "default" },
+    });
+    expect(contextResponse.statusCode).toBe(200);
+    expect(contextResponse.json().data.modelRevisionId).toBe(result.providerId);
+
+    const mismatchedBody = await app.inject({
+      method: "POST",
+      url: "/resolve",
+      headers: {
+        "x-kokoro-service": "session",
+        "x-kokoro-internal-secret": "sec-session",
+        "x-kokoro-tenant-id": result.providerId,
+      },
+      payload: { requestId: "request-mismatched-body", tenantId: result.modelRevisionId, label: "default" },
+    });
+    expect(mismatchedBody.statusCode).toBe(400);
+    expect(mismatchedBody.json().error.code).toBe("request.invalid");
+    await app.close();
   });
 
   it("exposes health and resolve over the local HTTP surface", async () => {
@@ -63,7 +126,7 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
       payload: { requestId: "request-invalid", tenantId: result.modelRevisionId },
     });
     expect(invalid.statusCode).toBe(400);
-    expect(invalid.json()).toMatchObject({ requestId: "request-invalid", error: { code: "request.invalid" } });
+    expect(invalid.json()).toMatchObject({ meta: { request_id: "request-invalid" }, error: { code: "request.invalid" } });
 
     const unavailable = await failing.inject({
       method: "POST",
@@ -72,7 +135,7 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     });
     expect(unavailable.statusCode).toBe(503);
     expect(unavailable.json()).toMatchObject({
-      requestId: "request-unavailable",
+      meta: { request_id: "request-unavailable" },
       error: { code: "model.dependencies_unavailable" },
     });
 
@@ -88,7 +151,7 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     });
 
     expect(response.statusCode).toBe(404);
-    expect(response.json()).toMatchObject({ requestId: "request-missing", error: { code: "model.route_not_found" } });
+    expect(response.json()).toMatchObject({ meta: { request_id: "request-missing" }, error: { code: "model.route_not_found" } });
     await app.close();
   });
 });
