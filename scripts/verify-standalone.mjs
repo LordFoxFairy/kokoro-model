@@ -5,7 +5,7 @@ const required = [
   "docs/DESIGN_CARD.md",
   "docs/TECHNICAL_DESIGN.md",
   "docs/OWNER_AND_MIGRATION.md",
-  "docs/COMPATIBILITY.md",
+  "docs/RUNTIME_BOUNDARY.md",
   "contract/provenance.json",
   "src/catalog/README.md",
   "src/routing/README.md",
