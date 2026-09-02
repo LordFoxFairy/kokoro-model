@@ -73,7 +73,7 @@ describe("compiled production HTTP composition", () => {
 
     expect(catalog.statusCode).toBe(200);
     expect(catalog.json().data.items).toHaveLength(1);
-    expect(catalog.json().data.items[0]).toMatchObject({ key: "chat.default", availability: "available" });
+    expect(catalog.json().data.items[0]).toMatchObject({ key: "chat.default", display_name: "Kokoro Default", feature_key: "chat", availability: "available" });
     expect(resolved.statusCode).toBe(200);
     expect(resolved.json().data).toMatchObject({
       modelRevisionId: expect.any(String),

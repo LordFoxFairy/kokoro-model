@@ -149,8 +149,8 @@ Root RPC 的 `request_id` 为准。
 | `GET` | `/model-bindings/resolve` | 解析预览；租户上下文来自 `x-kokoro-tenant-id` |
 | `GET` | `/bff/model-catalog` | `web-bff` 专用的租户可见目录，租户只来自 `x-kokoro-tenant-id` |
 
-列表接口接受 `limit=1..100` 和 opaque `cursor`；分页信息位于明确的 `page: { nextCursor? }`。
-BFF facade 使用浏览器契约风格的 `data: { items, next_cursor? }`。游标绑定资源和查询范围，跨资源、跨 filter 或损坏的游标返回
+列表接口接受 `limit=1..100` 和 opaque `cursor`。`/bff/model-catalog` 使用跨仓统一的 snake_case wire contract，返回
+`data: { items, next_cursor? }`；其他管理型 HTTP 列表保持本仓 admin contract。游标绑定资源和查询范围，跨资源、跨 filter 或损坏的游标返回
 `400 model.invalid_cursor`。
 
 `/bff/model-catalog` 的成功响应：
@@ -160,10 +160,10 @@ BFF facade 使用浏览器契约风格的 `data: { items, next_cursor? }`。游�
   "data": {
     "items": [{
       "key": "chat.default",
-      "displayName": "Kokoro 默认",
-      "featureKey": "chat",
+      "display_name": "Kokoro 默认",
+      "feature_key": "chat",
       "availability": "available",
-      "capabilities": { "inputModalities": ["text"], "outputModalities": ["text"], "contextWindow": 128000 }
+      "capabilities": { "input_modalities": ["text"], "output_modalities": ["text"], "context_window": 128000 }
     }]
   },
   "meta": { "request_id": "req_01" }

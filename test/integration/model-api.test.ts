@@ -138,10 +138,10 @@ describe("model HTTP API", () => {
         items: [
           {
             key: "chat.default",
-            displayName: "Kokoro Default",
-            featureKey: "chat",
+            display_name: "Kokoro Default",
+            feature_key: "chat",
             availability: "available",
-            capabilities: { inputModalities: ["text"], outputModalities: ["text"], contextWindow: null },
+            capabilities: { input_modalities: ["text"], output_modalities: ["text"], context_window: null },
           },
         ],
       },

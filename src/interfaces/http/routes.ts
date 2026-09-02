@@ -171,8 +171,21 @@ export function registerModelRoutes(app: FastifyInstance, service: ModelService)
           return sendError(reply, 400, "model.tenant_required", "tenant context is required");
         }
         const page = await service.listPublicModelCatalog(context.tenantId, query.featureKey, query);
+        const items = page.items.map((item) => ({
+          key: item.key,
+          display_name: item.displayName,
+          description: item.description,
+          feature_key: item.featureKey,
+          tier: item.tier,
+          availability: item.availability,
+          capabilities: {
+            input_modalities: item.capabilities.inputModalities,
+            output_modalities: item.capabilities.outputModalities,
+            context_window: item.capabilities.contextWindow,
+          },
+        }));
         return reply.code(200).send({
-          data: { items: page.items, ...(page.nextCursor === undefined ? {} : { next_cursor: page.nextCursor }) },
+          data: { items, ...(page.nextCursor === undefined ? {} : { next_cursor: page.nextCursor }) },
           meta: { request_id: context.requestId },
         });
       } catch (error) {
