@@ -54,7 +54,7 @@ export class ModelService {
     return this.repository.listModelLabels();
   }
 
-  // 运行时目录（session 消费）：只出 active，可按 featureKey 过滤。目录空/过滤后空都合法（消费侧回落）。
+  // 运行时目录（runtime 消费）：只出 active，可按 featureKey 过滤。目录空/过滤后空都合法（消费侧回落）。
   async listActiveModelLabels(featureKey?: string | undefined) {
     const labels = await this.repository.listModelLabels();
     return labels.filter(

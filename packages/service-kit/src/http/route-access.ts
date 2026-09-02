@@ -12,7 +12,6 @@ export type AccessLevel = (typeof ACCESS_LEVELS)[number];
 // 已知调用方身份；每个 caller 有独立 secret（env KOKORO_INTERNAL_SECRET_<CALLER>）。
 // 新增 caller 时同步扩展；未列入者一律被视为未知调用方（401）。
 export const SERVICE_CALLERS = [
-  "session",
   "agent",
   "web-bff",
   "admin",
@@ -32,7 +31,6 @@ const CALLER_SET: ReadonlySet<string> = new Set(SERVICE_CALLERS);
 // 真正的信任边界仍在：admin 等级（仅 admin caller）不被 runtime 凭据触达，
 // web-bff 等级（仅 web-bff caller）与 runtime-internal 互不越界（web-bff 不在此列）。
 const RUNTIME_INTERNAL_CALLERS: ServiceCaller[] = [
-  "session",
   "agent",
   "credit",
   "payment",

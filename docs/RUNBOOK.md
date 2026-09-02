@@ -5,7 +5,7 @@
 ```bash
 export DATABASE_URL_MODEL=TARGET
 export KOKORO_REDIS_URL=TARGET
-export KOKORO_INTERNAL_SECRET_SESSION=TARGET
+export KOKORO_INTERNAL_SECRET_AGENT=TARGET
 export KOKORO_INTERNAL_SECRET_ADMIN=TARGET
 export KOKORO_INTERNAL_SECRET_WEB_BFF=TARGET
 pnpm db:migrate
@@ -23,7 +23,7 @@ curl -fsS \
   http://127.0.0.1:4221/bff/model-catalog
 
 curl -fsS -X POST -H 'content-type: application/json' \
-  -H 'x-kokoro-service: session' \
+  -H 'x-kokoro-service: agent' \
   -H 'x-kokoro-internal-secret: TARGET' \
   -H 'x-kokoro-tenant-id: TARGET' \
   -d '{"requestId":"TARGET","label":"TARGET"}' \

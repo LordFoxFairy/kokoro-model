@@ -91,7 +91,7 @@ pre-existing `/resolve` compatibility adapter. `/resolve` is a `runtime-internal
 `x-kokoro-service` + `x-kokoro-internal-secret` authentication pattern. The BFF must call the catalog on this same
 listener; it must not assume that `/bff/model-catalog` is served by a separate process.
 
-`GET /readyz` checks PostgreSQL and Redis. In production, the HTTP entry requires the `session`, `admin`, and
+`GET /readyz` checks PostgreSQL and Redis. In production, the HTTP entry requires the `agent`, `admin`, and
 `web-bff` caller secrets at startup. Docker Compose supplies local placeholder values; deployments must inject
 independent secret values through the environment.
 
@@ -191,20 +191,20 @@ Root RPC 的 `request_id` 为准。
   未发布为 `draft`，已发布且 provider 可用为 `available`，禁用为 `disabled`，退役/软删除为 `retired`。
 - tenant policy 的 `(tenant_id, label_key)` 是幂等键；Provider、Binding、Label 的 ensure 也分别使用业务唯一键。
   重试相同 payload 返回同一资源，不产生重复记录。管理写入须由 Admin Gateway 以 `admin` caller 进入；
-  BFF 只允许 `web-bff` caller 读取 tenant-scoped catalog，session 只允许 runtime-internal 读取。
+  BFF 只允许 `web-bff` caller 读取 tenant-scoped catalog，agent 只允许 runtime-internal 读取。
 
 ## 7. 统一错误与权限矩阵
 
 | Surface | caller | tenant 来源 | 失败语义 |
 |---|---|---|---|
 | Root Resolve RPC | Agent/受信 runtime | RPC `tenant_id` | `InvalidArgument` / `NotFound` / `Unavailable` / `Internal` |
-| `POST /resolve` | session 等 runtime-internal | `x-kokoro-tenant-id`；body `tenantId` 被拒绝 | 未认证 `401`；缺 tenant `400 model.tenant_required`；统一 HTTP error envelope |
-| `/model-bindings/resolve` | session 等 runtime-internal | `x-kokoro-tenant-id`，缺省仅限内部预览 | 统一 HTTP error envelope |
+| `POST /resolve` | agent 等 runtime-internal | `x-kokoro-tenant-id`；body `tenantId` 被拒绝 | 未认证 `401`；缺 tenant `400 model.tenant_required`；统一 HTTP error envelope |
+| `/model-bindings/resolve` | agent 等 runtime-internal | `x-kokoro-tenant-id`，缺省仅限内部预览 | 统一 HTTP error envelope |
 | `/bff/model-catalog` | web-bff | 必须有 `x-kokoro-tenant-id` | 缺 tenant 为 `400 model.tenant_required` |
 | `/admin/models/*` | admin | 管理 gateway 的授权上下文 | route-access 先认证 caller，再由 manifest permission 做操作授权 |
 
 Model 不导入 IAM、Agent、Credit 或 Billing 的实现，也不把 request body 中的 tenant 当作授权依据。
-`x-kokoro-service` 和对应 per-caller secret 是服务间身份；生产缺少 `session`、`admin` 或 `web-bff`
+`x-kokoro-service` 和对应 per-caller secret 是服务间身份；生产缺少 `agent`、`admin` 或 `web-bff`
 凭据时启动失败。
 
 ## 8. 生成与验证

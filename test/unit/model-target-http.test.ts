@@ -46,7 +46,7 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     const app = createModelServer({
       prisma: new PrismaClient({ datasources: { db: { url: "file:./resolve-auth-test.db" } } }),
       resolver: async () => result,
-      routeAccess: { secrets: { session: "sec-session" }, isProduction: false },
+      routeAccess: { secrets: { agent: "sec-agent" }, isProduction: false },
     });
 
     const response = await app.inject({
@@ -64,13 +64,13 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
     const app = createModelServer({
       prisma: new PrismaClient({ datasources: { db: { url: "file:./resolve-context-test.db" } } }),
       resolver: async (request) => ({ ...result, modelRevisionId: request.tenantId }),
-      routeAccess: { secrets: { session: "sec-session" }, isProduction: false },
+      routeAccess: { secrets: { agent: "sec-agent" }, isProduction: false },
     });
 
     const missingContext = await app.inject({
       method: "POST",
       url: "/resolve",
-      headers: { "x-kokoro-service": "session", "x-kokoro-internal-secret": "sec-session" },
+      headers: { "x-kokoro-service": "agent", "x-kokoro-internal-secret": "sec-agent" },
       payload: { requestId: "request-body-tenant", tenantId: result.modelRevisionId, label: "default" },
     });
     expect(missingContext.statusCode).toBe(400);
@@ -80,8 +80,8 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
       method: "POST",
       url: "/resolve",
       headers: {
-        "x-kokoro-service": "session",
-        "x-kokoro-internal-secret": "sec-session",
+        "x-kokoro-service": "agent",
+        "x-kokoro-internal-secret": "sec-agent",
         "x-kokoro-tenant-id": result.providerId,
       },
       payload: { requestId: "request-context-tenant", label: "default" },
@@ -93,8 +93,8 @@ describe("target PostgreSQL + Redis HTTP boundary", () => {
       method: "POST",
       url: "/resolve",
       headers: {
-        "x-kokoro-service": "session",
-        "x-kokoro-internal-secret": "sec-session",
+        "x-kokoro-service": "agent",
+        "x-kokoro-internal-secret": "sec-agent",
         "x-kokoro-tenant-id": result.providerId,
       },
       payload: { requestId: "request-mismatched-body", tenantId: result.modelRevisionId, label: "default" },

@@ -32,7 +32,7 @@ const BUILTIN_BINDING = {
   gatewayModelName: "claude-code",
 };
 
-// 用户可选目录项：key=可 resolve 的 labelKey=/models 候选 name；与 session 默认名对齐即 is_default。
+// 用户可选目录项：key=可 resolve 的 labelKey=/models 候选 name；与 runtime 默认名对齐即 is_default。
 const BUILTIN_LABEL = {
   key: "claude-code",
   displayName: "Kokoro 默认",

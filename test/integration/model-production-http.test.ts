@@ -64,8 +64,8 @@ describe("compiled production HTTP composition", () => {
       method: "POST",
       url: "/resolve",
       headers: {
-        "x-kokoro-service": "session",
-        "x-kokoro-internal-secret": "kokoro-local-session",
+        "x-kokoro-service": "agent",
+        "x-kokoro-internal-secret": "kokoro-local-agent",
         "x-kokoro-tenant-id": tenantId,
       },
       payload: { requestId: "production-resolve", label: "chat.default" },

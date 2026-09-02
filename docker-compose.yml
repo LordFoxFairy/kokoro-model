@@ -43,7 +43,7 @@ services:
       DATABASE_URL_MODEL: postgresql://kokoro_app:${POSTGRES_PASSWORD:-kokoro_local}@postgresql:5432/kokoro
       KOKORO_REDIS_URL: redis://redis:6379
       KOKORO_MODEL_HTTP_PORT: "4221"
-      KOKORO_INTERNAL_SECRET_SESSION: ${KOKORO_INTERNAL_SECRET_SESSION:-kokoro-local-session}
+      KOKORO_INTERNAL_SECRET_AGENT: ${KOKORO_INTERNAL_SECRET_AGENT:-kokoro-local-agent}
       KOKORO_INTERNAL_SECRET_ADMIN: ${KOKORO_INTERNAL_SECRET_ADMIN:-kokoro-local-admin}
       KOKORO_INTERNAL_SECRET_WEB_BFF: ${KOKORO_INTERNAL_SECRET_WEB_BFF:-kokoro-local-web-bff}
     depends_on:

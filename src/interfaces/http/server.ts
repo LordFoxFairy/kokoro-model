@@ -34,8 +34,8 @@ export interface CreateModelServerOptions {
   readinessChecks?: ReadinessChecks;
 }
 
-// model 所需 caller 凭据：session(model-bindings/resolve 可用性权威) + admin(网关) 入站。model 无出站。
-const MODEL_REQUIRED_CALLERS: ServiceCaller[] = ["session", "admin", "web-bff"];
+// model 所需 caller 凭据：agent(model-bindings/resolve 可用性权威) + admin(网关) 入站。model 无出站。
+const MODEL_REQUIRED_CALLERS: ServiceCaller[] = ["agent", "admin", "web-bff"];
 
 export function createModelServer(options: CreateModelServerOptions = {}) {
   const app = Fastify({
